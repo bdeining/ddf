@@ -15,7 +15,7 @@
 
     <feature name="sdk-metrics" version="${project.version}" install="manual"
              description="SDK sample metrics.">
-        <bundle>mvn:ddf.sdk/sample-metrics/${project.version}</bundle>
+        <bundle>mvn:ddf.distribution.sdk/sample-metrics/${project.version}</bundle>
     </feature>
 
     <feature name="sdk-soap" version="${project.version}" install="manual"
