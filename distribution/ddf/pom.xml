@@ -255,7 +255,7 @@
         </plugins>
     </build>
 
-    <!--<profiles>
+    <profiles>
         <profile>
             <id>javadoc-unpack</id>
             <build>
@@ -264,7 +264,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <executions>
-                            <execution>
+                           <!-- <execution>
                                 <id>unpack-javadoc</id>
                                 <phase>generate-resources</phase>
                                 <goals>
@@ -323,7 +323,7 @@
                                         </artifactItem>
                                     </artifactItems>
                                 </configuration>
-                            </execution>
+                            </execution> -->
                         </executions>
                     </plugin>
                 </plugins>
