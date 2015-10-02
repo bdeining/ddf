@@ -218,13 +218,23 @@ public class SecureCxfClientFactory<T> {
         return clientImpl;
     }
 
-    /*
+    /**
      * Add TLS and Basic Auth credentials to the underlying {@link org.apache.cxf.transport.http.HTTPConduit}
      * This includes two-way ssl assuming that the platform keystores are configured correctly
      */
     private void initSecurity(ClientConfiguration clientConfig, String username, String password)
             throws SecurityServiceException {
+
+        //by default, we want to allow redirects
+        boolean autoRedirect = true;
+        initSecurity(clientConfig, username, password, autoRedirect);
+    }
+
+    private void initSecurity(ClientConfiguration clientConfig, String username, String password,
+            boolean autoRedirect) throws SecurityServiceException {
+
         HTTPConduit httpConduit = clientConfig.getHttpConduit();
+        httpConduit.getClient().setAutoRedirect(autoRedirect);
         if (httpConduit == null) {
             throw new SecurityServiceException(
                     "HTTPConduit was null for " + this + ". Unable to configure security.");
