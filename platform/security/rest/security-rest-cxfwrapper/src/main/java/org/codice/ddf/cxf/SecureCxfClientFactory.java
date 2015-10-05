@@ -230,17 +230,7 @@ public class SecureCxfClientFactory<T> {
      */
     private void configureCnCheck(ClientConfiguration clientConfig)
             throws SecurityServiceException {
-
-        //by default, we want to allow redirects
-        boolean autoRedirect = true;
-        initSecurity(clientConfig, username, password, autoRedirect);
-    }
-
-    private void initSecurity(ClientConfiguration clientConfig, String username, String password,
-            boolean autoRedirect) throws SecurityServiceException {
-
         HTTPConduit httpConduit = clientConfig.getHttpConduit();
-        httpConduit.getClient().setAutoRedirect(autoRedirect);
         if (httpConduit == null) {
             throw new SecurityServiceException(
                     "HTTPConduit was null for " + this + ". Unable to configure security.");
@@ -254,6 +244,10 @@ public class SecureCxfClientFactory<T> {
             tlsParams.setDisableCNCheck(true);
             httpConduit.setTlsClientParameters(tlsParams);
         }
+
+        // Allow redirects
+        httpConduit.getClient().setAutoRedirect(true);
+        clientConfig.getBus().getProperties().put("http.redirect.relative.uri", true);
     }
 
     /**
