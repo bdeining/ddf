@@ -18,7 +18,7 @@
     <parent>
         <artifactId>security-sts-pom</artifactId>
         <groupId>ddf.security.sts</groupId>
-        <version>2.9.0-SNAPSHOT</version>
+        <version>2.9.0-travis</version>
     </parent>
 
     <artifactId>security-sts-ldapclaimshandler</artifactId>
