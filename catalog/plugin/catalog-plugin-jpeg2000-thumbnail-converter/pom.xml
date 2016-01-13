@@ -17,7 +17,7 @@
     <parent>
         <groupId>ddf.catalog.plugin</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.9.0-SNAPSHOT</version>
+        <version>2.9.0.ALPHA3-20160113T134500Z</version>
     </parent>
     <artifactId>jpeg2000-thumbnail-converter</artifactId>
     <name>DDF :: Catalog :: Plugin :: Jpeg2000 :: Thumbnail :: Converter</name>
@@ -48,7 +48,7 @@
     </dependencies>
     <repositories>
         <repository>
-            <releases/>
+            <releases />
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -70,7 +70,7 @@
                             jai-imageio-core-standalone,
                             jai-imageio-jpeg2000
                         </Embed-Dependency>
-                        <Export-Package/>
+                        <Export-Package />
                     </instructions>
                 </configuration>
             </plugin>
