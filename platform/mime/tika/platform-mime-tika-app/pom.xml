@@ -18,7 +18,7 @@
     <parent>
         <artifactId>mime-tika-pom</artifactId>
         <groupId>ddf.mime.tika</groupId>
-        <version>2.9.0-SNAPSHOT</version>
+        <version>2.9.0.ALPHA3-20160112T211741Z</version>
     </parent>
     <artifactId>mime-tika-app</artifactId>
     <name>DDF :: MIME :: Tika :: App</name>
