@@ -17,7 +17,7 @@
     <parent>
         <artifactId>distribution</artifactId>
         <groupId>ddf</groupId>
-        <version>2.9.0-SNAPSHOT</version>
+        <version>2.9.0-GBv1.11-20160126T0800Z</version>
     </parent>
     <artifactId>webconsole-branding-plugin</artifactId>
     <groupId>ddf.distribution</groupId>
@@ -38,7 +38,7 @@
                 <configuration>
                     <instructions>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
-                        <Export-Package/>
+                        <Export-Package />
                         <Import-Package>
             	org.apache.felix.webconsole,
             	org.apache.commons.io,
