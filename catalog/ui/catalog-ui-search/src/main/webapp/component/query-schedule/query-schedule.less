@@ -7,6 +7,7 @@
     padding: 0px @minimumSpacing @minimumSpacing @minimumSpacing;
   }
 
+<<<<<<< HEAD
   .editor-footer {
     height: @minimumButtonSize;
     white-space: nowrap;
@@ -26,26 +27,32 @@
       width: 50%;
       display: none;
     }
-  }
-
-  &.is-editing {
-    .editor-footer {
-
-      > .editor-edit {
-        display: none;
-      }
-      > .editor-cancel {
-        display: inline-block;
-      }
-      > .editor-save {
-        display: inline-block;
-      }
-    }
+=======
+  .schedule-properties {
+    display: none;
+    margin-left: 20px;
+>>>>>>> DDF-3497 Install Apache Ignite in DDF
   }
 }
 
-@{customElementNamespace}query-schedule.is-specific-sources {
-  .settings-src {
+@{customElementNamespace}query-schedule.is-scheduled {
+  .schedule-properties {
     display: block;
+  }
+
+  .amount-picker {
+    white-space: nowrap;
+    overflow: hidden;
+    width: ~'calc(10%)';
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  .unit-picker {
+    white-space: nowrap;
+    overflow: hidden;
+    width: ~'calc(30%)';
+    display: inline-block;
+    vertical-align: middle;
   }
 }
