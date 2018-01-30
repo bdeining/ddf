@@ -95,10 +95,10 @@ define([
             });
         },
         setupScheduling: function() {
-            let userEmail = user.get('user').get('email');
-            let scheduleModel = this.model.get('schedules').get(userEmail);
+            let username = user.get('user').get('username');
+            let scheduleModel = this.model.get('schedules').get(username);
             if (scheduleModel === undefined) {
-                scheduleModel = new QueryScheduleModel({ userId: userEmail });
+                scheduleModel = new QueryScheduleModel({ userId: username });
             }
             this.settingsSchedule.show(new ScheduleQueryView({
                 model: scheduleModel
