@@ -418,7 +418,7 @@
 
     <bean id="queryEmailDeliveryService"
           class="org.codice.ddf.catalog.ui.scheduling.subscribers.EmailDeliveryService">
-        <argument value="donotreply@codice.org"/>
+        <argument value="donotreply@example.com"/>
         <argument ref="smtpClient"/>
     </bean>
 
