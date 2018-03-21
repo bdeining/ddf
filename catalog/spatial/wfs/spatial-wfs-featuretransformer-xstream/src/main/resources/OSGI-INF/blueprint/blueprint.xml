@@ -32,7 +32,7 @@
                     interface="org.codice.ddf.spatial.ogc.wfs.catalog.mapper.MetacardMapper"
                     availability="optional"/>
 
-    <reference id="wfsMetacardTypeRegistry" interface="org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry.api.WfsMetacardTypeRegistry"/>
+    <reference id="wfsMetacardTypeRegistry" interface="org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry.WfsMetacardTypeRegistry"/>
 
     <service ref="xstreamWfs11FeatureTransformer" interface="org.codice.ddf.spatial.ogc.wfs.catalog.message.api.FeatureTransformer" ranking="40"/>
 

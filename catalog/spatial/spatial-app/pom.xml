@@ -242,12 +242,12 @@
         </dependency>
         <dependency>
             <groupId>org.codice.ddf.spatial</groupId>
-            <artifactId>spatial-wfs-message-api</artifactId>
+            <artifactId>spatial-wfs-featuretransformer-api</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.codice.ddf.spatial</groupId>
-            <artifactId>spatial-wfs-message</artifactId>
+            <artifactId>spatial-wfs-featuretransformer</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

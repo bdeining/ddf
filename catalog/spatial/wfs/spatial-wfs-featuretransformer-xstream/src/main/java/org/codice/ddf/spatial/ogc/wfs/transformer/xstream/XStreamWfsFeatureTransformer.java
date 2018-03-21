@@ -31,7 +31,7 @@ import org.codice.ddf.spatial.ogc.wfs.catalog.converter.impl.GmlGeometryConverte
 import org.codice.ddf.spatial.ogc.wfs.catalog.mapper.MetacardMapper;
 import org.codice.ddf.spatial.ogc.wfs.catalog.message.api.FeatureTransformer;
 import org.codice.ddf.spatial.ogc.wfs.catalog.message.api.WfsMetadata;
-import org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry.api.WfsMetacardTypeRegistry;
+import org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry.WfsMetacardTypeRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

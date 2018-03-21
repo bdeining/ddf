@@ -33,7 +33,7 @@
     
     <reference id="encryptionService" interface="ddf.security.encryption.EncryptionService"/>
 
-    <reference id="metacardTypeRegistry" interface="org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry.api.WfsMetacardTypeRegistry"/>
+    <reference id="metacardTypeRegistry" interface="org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry.WfsMetacardTypeRegistry"/>
 
     <reference id="featureTransformationService" interface="org.codice.ddf.spatial.ogc.wfs.catalog.message.api.FeatureTransformationService"/>
 

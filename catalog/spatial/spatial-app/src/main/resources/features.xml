@@ -57,8 +57,8 @@
     <feature name="spatial-wfs-core" version="${project.version}"
              description="Web Feature Service (WFS).">
         <feature>spatial-wfs-ogc</feature>
-        <bundle>mvn:org.codice.ddf.spatial/spatial-wfs-message-api/${project.version}</bundle>
-        <bundle>mvn:org.codice.ddf.spatial/spatial-wfs-message/${project.version}</bundle>
+        <bundle>mvn:org.codice.ddf.spatial/spatial-wfs-featuretransformer-api/${project.version}</bundle>
+        <bundle>mvn:org.codice.ddf.spatial/spatial-wfs-featuretransformer/${project.version}</bundle>
         <bundle>mvn:org.codice.ddf.spatial/spatial-ogc-urlresourcereader/${project.version}</bundle>
         <bundle>
             mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.xpp3/${xpp3.bundle.version}
