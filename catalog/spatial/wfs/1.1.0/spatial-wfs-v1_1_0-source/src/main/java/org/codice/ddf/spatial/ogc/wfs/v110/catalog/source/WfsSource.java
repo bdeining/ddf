@@ -617,7 +617,7 @@ public class WfsSource extends AbstractWfsSource {
   private void registerFeatureMetacardTypes(Map<String, FeatureMetacardType> mcTypeRegs) {
     // Unregister all MetacardType services - the DescribeFeatureTypeRequest should
     // have returned all of the most current metacard types that will now be registered.
-    // As Source(s) are added/cemoved from this instance or to other Source(s)
+    // As Source(s) are added/removed from this instance or to other Source(s)
     // that this instance is federated to, the list of metacard types will change.
     // This is done here vs. inside the above loop so that minimal time is spent clearing and
     // registering the MetacardTypes - the concern is that if this registration is too lengthy
@@ -724,10 +724,7 @@ public class WfsSource extends AbstractWfsSource {
 
     LOGGER.debug("WfsSource {}: Registering MetacardType: {}", getId(), ftName);
 
-    //    wfsMetacardTypeRegistry.registerMetacardType(ftMetacard, this.getId(), ftName);
-
     return ftMetacard;
-    // return new MetacardTypeRegistration(ftMetacard, props, featureTypeType.getDefaultSRS());
   }
 
   private MetacardMapper lookupMetacardAttributeToFeaturePropertyMapper(QName featureType) {
