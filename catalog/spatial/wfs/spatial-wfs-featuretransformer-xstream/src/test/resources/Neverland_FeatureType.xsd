@@ -13,7 +13,7 @@
   -->
 <xsd:schema elementFormDefault="qualified" targetNamespace="http://www.neverland.org/peter/pan"
   xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:gml="http://www.opengis.net/gml"
-  xmlns:gin="http://www.neverland.org/peter/pan">
+  xmlns:neverland="http://www.neverland.org/peter/pan">
     <xsd:complexType name="PeterPan_Type">
         <xsd:complexContent>
             <xsd:extension base="gml:AbstractFeatureType">
@@ -30,8 +30,6 @@
                       type="xsd:string"/>
                     <xsd:element maxOccurs="1" minOccurs="0" name="PANAlias" nillable="true"
                       type="xsd:string"/>
-                    <xsd:element maxOccurs="1" minOccurs="0" name="GINMissionElement"
-                      nillable="true" type="xsd:string"/>
                     <xsd:element maxOccurs="1" minOccurs="0" name="Analytics" nillable="true"
                       type="xsd:string"/>
                     <xsd:element maxOccurs="1" minOccurs="0" name="Keyword" nillable="true"
@@ -50,5 +48,5 @@
             </xsd:extension>
         </xsd:complexContent>
     </xsd:complexType>
-    <xsd:element name="GeneralGIN" substitutionGroup="gml:_Feature" type="gin:GeneralGIN_Type"/>
+    <xsd:element name="PeterPAN" substitutionGroup="gml:_Feature" type="neverland:Peterpan_Type"/>
 </xsd:schema>
