@@ -875,17 +875,24 @@ public class MetacardApplication implements SparkApplication {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
+            Map<String, Object> extras =
+                (Map<String, Object>) incoming.getOrDefault("extras", Collections.emptyMap());
+
             for (QueryCourier queryDeliveryService : deliveryServices) {
               for (Map<String, Object> matchingDest : matchingDests) {
                 if (matchingDest
                     .get(DELIVERY_TYPE_KEY)
                     .equals(queryDeliveryService.getDeliveryType())) {
+
+                  String deliveryId = (String) matchingDest.get(DELIVERY_METHOD_ID_KEY);
+                  Map<String, Object> deliveryParameters =
+                      (Map<String, Object>) matchingDest.get(DELIVERY_PARAMETERS_KEY);
+                  deliveryParameters.putAll(
+                      (Map<String, Object>)
+                          extras.getOrDefault(deliveryId, Collections.emptyMap()));
+
                   queryDeliveryService.deliver(
-                      metacardId,
-                      queryResponse,
-                      username,
-                      (String) matchingDest.get(DELIVERY_METHOD_ID_KEY),
-                      (Map<String, Object>) matchingDest.get(DELIVERY_PARAMETERS_KEY));
+                      metacardId, queryResponse, username, deliveryId, deliveryParameters);
                 }
               }
             }
