@@ -24,6 +24,9 @@
     <artifactId>catalog-ui-search</artifactId>
     <name>DDF :: Catalog :: UI :: Catalog UI Search</name>
     <packaging>bundle</packaging>
+    <properties>
+        <jetty-ignite.version>9.2.11.v20150529</jetty-ignite.version>
+    </properties>
     <dependencies>
         <!-- https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api -->
         <dependency>
