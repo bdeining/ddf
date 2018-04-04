@@ -11,13 +11,9 @@
  * License is distributed along with this program and can be found at
  * <http://www.gnu.org/licenses/lgpl.html>.
  */
-package org.codice.ddf.catalog.ui.metacard.workspace;
+package ddf.catalog.data.impl;
 
 import ddf.catalog.data.AttributeDescriptor;
-import ddf.catalog.data.impl.AttributeDescriptorImpl;
-import ddf.catalog.data.impl.BasicTypes;
-import ddf.catalog.data.impl.MetacardImpl;
-import ddf.catalog.data.impl.MetacardTypeImpl;
 import ddf.catalog.data.types.Core;
 import java.util.HashSet;
 import java.util.Set;
@@ -43,6 +39,8 @@ public class QueryMetacardTypeImpl extends MetacardTypeImpl {
   public static final String QUERY_FEDERATION = "federation";
 
   public static final String QUERY_TYPE = "type";
+
+  public static final String QUERY_SCHEDULES = "schedules";
 
   private static final Set<AttributeDescriptor> QUERY_DESCRIPTORS;
 
@@ -124,6 +122,15 @@ public class QueryMetacardTypeImpl extends MetacardTypeImpl {
             false /* tokenized */,
             false /* multivalued */,
             BasicTypes.STRING_TYPE));
+
+    QUERY_DESCRIPTORS.add(
+        new AttributeDescriptorImpl(
+            QUERY_SCHEDULES,
+            false /* indexed */,
+            true /* stored */,
+            false /* tokenized */,
+            true /* multivalued */,
+            BasicTypes.XML_TYPE));
   }
 
   public QueryMetacardTypeImpl() {
