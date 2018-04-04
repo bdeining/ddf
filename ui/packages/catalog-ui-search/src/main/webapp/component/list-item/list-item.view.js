@@ -24,6 +24,9 @@ var DropdownView = require('component/dropdown/popout/dropdown.popout.view');
 var ListEditorView = require('component/list-editor/list-editor.view');
 var QueryFeedView = require('component/query-feed/query-feed.view');
 var ListInteractionsView = require('component/list-interactions/list-interactions.view');
+var lightboxInstance = require('component/lightbox/lightbox.view.instance');
+var IngestDetailsView = require('component/ingest-details/ingest-details.view');
+var store = require('js/store');
 
 module.exports = Marionette.LayoutView.extend({
   tagName: CustomElements.register('list-item'),
@@ -36,13 +39,15 @@ module.exports = Marionette.LayoutView.extend({
   regions: {
     listEdit: '.list-edit',
     queryFeed: '.details-feed',
-    listActions: '.list-actions'
+    listActions: '.list-actions',
+    listAdd: '.list-add'
   },
   events: {
     'click .list-run': 'triggerRun',
     'click .list-refresh': 'triggerRun',
     'click .list-stop': 'triggerStop',
-    'click .list-delete': 'triggerDelete'
+    'click .list-delete': 'triggerDelete',
+    'click .list-add': 'triggerAdd'
   },
   behaviors: {
     button: {}
@@ -60,7 +65,7 @@ module.exports = Marionette.LayoutView.extend({
   },
   handleOutOfDate: function() {
     this.$el.toggleClass('is-out-of-date', this.model.get('query>isOutdated'));
-  },  
+  },
   handleEmptyList: function() {
     this.$el.toggleClass('is-empty', this.model.isEmpty());
   },
@@ -77,7 +82,7 @@ module.exports = Marionette.LayoutView.extend({
       },
       modelForComponent: this.model,
       leftIcon: 'fa fa-ellipsis-v'
-    }));
+    }))
   },
   setupFeed: function() {
     this.queryFeed.show(new QueryFeedView({
@@ -122,6 +127,26 @@ module.exports = Marionette.LayoutView.extend({
     this.model.get('query').cancelCurrentSearches();
     this.model.collection.remove(this.model);
     e.stopPropagation();
+  },
+  triggerAdd: function(e) {
+    lightboxInstance.model.updateTitle('Add List Items');
+    lightboxInstance.model.open();
+    lightboxInstance.lightboxContent.show(new IngestDetailsView({
+        extraHeaders: {
+            'List-ID': this.model.attributes.id,
+            'List-Type': this.model.get('list.icon')
+        },
+        handleUploadSuccess: this.handleUploadSuccess.bind(this),
+        url: '/search/catalog/internal/list/import'
+    }));
+    e.stopPropagation();
+  },
+  handleUploadSuccess: function(file) {
+    var addedIds = file.xhr.getResponseHeader('Added-IDs');
+    if(addedIds) {
+        this.model.addBookmarks(addedIds.split(','));
+        this.model.get('query').startSearchIfOutdated();
+    }
   },
   serializeData: function() {
     return _merge(this.model.toJSON({

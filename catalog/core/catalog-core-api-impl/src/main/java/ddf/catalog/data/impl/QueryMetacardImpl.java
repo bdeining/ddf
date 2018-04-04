@@ -11,18 +11,17 @@
  * License is distributed along with this program and can be found at
  * <http://www.gnu.org/licenses/lgpl.html>.
  */
-package org.codice.ddf.catalog.ui.metacard.workspace;
+package ddf.catalog.data.impl;
 
 import ddf.catalog.data.Attribute;
 import ddf.catalog.data.Metacard;
-import ddf.catalog.data.impl.MetacardImpl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class QueryMetacardImpl extends MetacardImpl {
-  private static final QueryMetacardTypeImpl TYPE = new QueryMetacardTypeImpl();
+  public static final QueryMetacardTypeImpl TYPE = new QueryMetacardTypeImpl();
 
   public QueryMetacardImpl() {
     super(TYPE);
