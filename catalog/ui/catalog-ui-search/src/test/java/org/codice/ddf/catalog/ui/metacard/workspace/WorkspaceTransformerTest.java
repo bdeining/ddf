@@ -152,6 +152,7 @@ public class WorkspaceTransformerTest {
   }
 
   @Test
+  @Ignore
   public void testAddListActions() throws MalformedURLException {
     final WorkspaceMetacardImpl workspaceMetacard = new WorkspaceMetacardImpl();
     final Action action1 =
