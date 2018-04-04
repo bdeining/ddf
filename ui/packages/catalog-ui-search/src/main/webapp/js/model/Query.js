@@ -113,9 +113,7 @@ define([
 
                 switch (data.federation) {
                     case 'local':
-                        if (!properties.isDisableLocalCatalog()) {
-                            data.src = [Sources.localCatalog];
-                        }
+                        data.src = [Sources.localCatalog];
                         break;
                     case 'enterprise':
                         data.src = _.pluck(Sources.toJSON(), 'id');
