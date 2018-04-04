@@ -547,6 +547,48 @@
                         <outputDirectory>${project.build.directory}</outputDirectory>
                     </configuration>
                 </plugin>
+                <!-- Overwrite system.properties settings -->
+                <plugin>
+                    <groupId>com.google.code.maven-replacer-plugin</groupId>
+                    <artifactId>replacer</artifactId>
+                    <version>1.5.3</version>
+                    <executions>
+                        <execution>
+                            <phase>generate-resources</phase>
+                            <goals>
+                                <goal>replace</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <file>
+                            ${project.basedir}/target/dependencies/ddf-kernel-${project.version}/etc/system.properties
+                        </file>
+                        <replacements>
+                            <replacement>
+                                <token>ddf.distribution</token>
+                                <value>GSR</value>
+                            </replacement>
+                            <!-- Temporarily disable the security manager, to be fixed in: GSR-1487  -->
+                            <replacement>
+                                <token>policy.provider=(\p{Alnum}|\p{Punct})*</token>
+                                <value># policy.provider</value>
+                            </replacement>
+                            <replacement>
+                                <token>java.security.manager=(\p{Alnum}|\p{Punct})*</token>
+                                <value># java.security.manager</value>
+                            </replacement>
+                            <replacement>
+                                <token>java.security.policy=(\p{Alnum}|\p{Punct})*</token>
+                                <value># java.security.policy</value>
+                            </replacement>
+                            <replacement>
+                                <token>proGrade.getPermissions.override=(\p{Alnum}|\p{Punct})*</token>
+                                <value># proGrade.getPermissions.override</value>
+                            </replacement>
+                        </replacements>
+                    </configuration>
+                </plugin>
                 <plugin>
                     <groupId>com.github.eirslett</groupId>
                     <artifactId>frontend-maven-plugin</artifactId>
