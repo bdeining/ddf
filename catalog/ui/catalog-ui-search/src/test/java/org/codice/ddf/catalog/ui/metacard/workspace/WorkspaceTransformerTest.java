@@ -152,7 +152,6 @@ public class WorkspaceTransformerTest {
   }
 
   @Test
-  @Ignore
   public void testAddListActions() throws MalformedURLException {
     final WorkspaceMetacardImpl workspaceMetacard = new WorkspaceMetacardImpl();
     final Action action1 =
@@ -207,7 +206,7 @@ public class WorkspaceTransformerTest {
       final Matcher<Map<? extends String, ?>> titleMatcher = hasEntry("title", title);
       final Matcher<Map<? extends String, ?>> descriptionMatcher =
           hasEntry("description", description);
-      final Matcher<Map<? extends String, ?>> urlMatcher = hasEntry("url", url);
+      final Matcher<Map<? extends String, ?>> urlMatcher = hasEntry("url", url.toString());
       matcher = Matchers.allOf(idMatcher, titleMatcher, descriptionMatcher, urlMatcher);
     }
 
