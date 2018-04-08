@@ -63,8 +63,8 @@
     <feature name="spatial-wfs-core" version="${project.version}"
              description="Web Feature Service (WFS).">
         <feature>spatial-wfs-ogc</feature>
-        <bundle>mvn:org.codice.ddf.spatial/spatial-wfs-metacardtype-registry-api/${project.version}</bundle>
         <bundle>mvn:org.codice.ddf.spatial/spatial-wfs-featuretransformer-api/${project.version}</bundle>
+        <bundle>mvn:org.codice.ddf.spatial/spatial-wfs-metacardtype-registry-api/${project.version}</bundle>
         <bundle>mvn:org.codice.ddf.spatial/spatial-wfs-featuretransformer/${project.version}</bundle>
         <bundle>mvn:org.codice.ddf.spatial/spatial-ogc-urlresourcereader/${project.version}</bundle>
         <bundle>

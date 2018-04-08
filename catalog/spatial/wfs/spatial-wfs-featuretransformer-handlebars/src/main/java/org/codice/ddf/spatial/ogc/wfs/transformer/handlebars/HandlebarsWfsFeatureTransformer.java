@@ -27,7 +27,6 @@ import static org.codice.ddf.spatial.ogc.wfs.catalog.common.WfsConstants.TB;
 
 import ddf.catalog.data.Attribute;
 import ddf.catalog.data.AttributeDescriptor;
-import ddf.catalog.data.AttributeRegistry;
 import ddf.catalog.data.AttributeType;
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.MetacardType;
@@ -41,7 +40,6 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -63,7 +61,8 @@ import javax.xml.stream.events.Namespace;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import ogc.schema.opengis.wfs_capabilities.v_1_0_0.FeatureTypeType;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tika.io.IOUtils;
 import org.boon.json.JsonException;
 import org.boon.json.JsonFactory;
@@ -88,17 +87,17 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
 
   private static final XMLEventFactory XML_EVENT_FACTORY = XMLEventFactory.newInstance();
 
-  public static final String FEATURE_MEMBER_NAME = "featureMember";
-
   static final String ATTRIBUTE_NAME = "attributeName";
 
   static final String FEATURE_NAME = "featureName";
 
   static final String TEMPLATE = "template";
 
-  protected static final String UTF8_ENCODING = "UTF-8";
+  private static final String UTF8_ENCODING = "UTF-8";
 
   private static final String METACARD_ID = "metacardId";
+
+  private static final String GML_NAMESPACE = "http://www.opengis.net/gml";
 
   private String featureType;
 
@@ -108,41 +107,32 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
 
   private MetacardType metacardType;
 
-  private List<AttributeDescriptor> attributeDescriptors;
-
   private Map<String, FeatureAttributeEntry> mappingEntries;
-
-  private Map<String, String> contextMap;
 
   private WfsMetacardTypeRegistry metacardTypeRegistry;
 
-  private AttributeRegistry attributeRegistry;
-
   public HandlebarsWfsFeatureTransformer() {
-    attributeDescriptors = new ArrayList<>();
-    contextMap = new HashMap<>();
     mappingEntries = new HashMap<>();
   }
 
   @Override
   public Optional<Metacard> apply(InputStream inputStream, WfsMetadata metadata) {
-    if (!isStateValid()) {
+    if (!isStateValid(inputStream, metadata)) {
       LOGGER.debug("Transformer state is invalid: {}, {}", featureType, mappingEntries);
       return Optional.empty();
     }
-    cleanState();
-
     lookupMetacardType(metadata);
     if (metacardType == null) {
       return Optional.empty();
     }
 
-    populateContextMap(inputStream);
+    Map<String, String> contextMap = new HashMap<>();
+    populateContextMap(inputStream, contextMap);
     if (CollectionUtils.isEmpty(contextMap)) {
       return Optional.empty();
     }
 
-    MetacardImpl metacard = (MetacardImpl) createMetacard();
+    MetacardImpl metacard = (MetacardImpl) createMetacard(contextMap);
 
     String id = null;
     if (StringUtils.isBlank(metacard.getId())) {
@@ -154,7 +144,7 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
       }
     }
 
-    metacard.setSourceId(metacard.getId());
+    metacard.setSourceId(metadata.getId());
 
     Date date = new Date();
     if (metacard.getEffectiveDate() == null) {
@@ -184,71 +174,84 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
     return Optional.of(metacard);
   }
 
-  private void cleanState() {
-    attributeDescriptors.clear();
-    contextMap.clear();
-  }
-
   /**
    * Reads in the FeatureMember from the inputstream, populating the contextMap with the XML tag
    * names and values
    *
    * @param inputStream the stream containing the FeatureMember xml document
    */
-  private void populateContextMap(InputStream inputStream) {
+  private void populateContextMap(InputStream inputStream, Map<String, String> contextMap) {
     Map<String, String> namespaces = new HashMap<>();
-    String gmlNamespaceAlias = null;
-    String id;
-
+    boolean canHandleFeatureType = false;
     try {
       XMLEventReader xmlEventReader = getXmlEventReader(inputStream);
 
+      String elementName = null;
       while (xmlEventReader.hasNext()) {
         XMLEvent xmlEvent = xmlEventReader.nextEvent();
         if (xmlEvent.isStartElement()) {
           StartElement startElement = xmlEvent.asStartElement();
-          String elementName = startElement.getName().getLocalPart();
-
-          if (elementName.equals(FEATURE_MEMBER_NAME)) {
-            mapNamespaces(startElement, namespaces);
-            gmlNamespaceAlias =
-                namespaces
-                    .entrySet()
-                    .stream()
-                    .filter(entry -> entry.getValue().contains("gml"))
-                    .map(Map.Entry::getKey)
-                    .findFirst()
-                    .get();
-
-            while (!xmlEventReader.peek().isStartElement()) {
-              xmlEventReader.nextEvent();
-            }
-
-            if (!canMap(xmlEventReader.peek().asStartElement(), namespaces)) {
-              return;
-            }
-
-          } else if (elementName.equals(featureTypeQName.getLocalPart())) {
-
-            id = getIdAttributeValue(startElement, namespaces, gmlNamespaceAlias);
-            contextMap.put(METACARD_ID, id);
-          } else {
-
-            if (xmlEventReader.hasNext()) {
-              XMLEvent eventPeek = xmlEventReader.peek();
-              if (eventPeek.isCharacters()) {
-                contextMap.put(elementName, xmlEventReader.nextEvent().asCharacters().getData());
-              } else if (eventPeek.isStartElement()
-                  && eventPeek.asStartElement().getName().getPrefix().equals(gmlNamespaceAlias)) {
-                readGmlData(xmlEventReader, elementName, namespaces);
-              }
-            }
-          }
+          elementName = startElement.getName().getLocalPart();
+          canHandleFeatureType |=
+              processStartElement(
+                  xmlEventReader, startElement, namespaces, contextMap, canHandleFeatureType);
+        } else if (xmlEvent.isCharacters()) {
+          contextMap.put(elementName, xmlEvent.asCharacters().getData());
         }
+      }
+      if (!canHandleFeatureType) {
+        contextMap.clear();
       }
     } catch (XMLStreamException e) {
       LOGGER.debug("Error transforming feature to metacard.", e);
     }
+  }
+
+  private boolean processStartElement(
+      XMLEventReader xmlEventReader,
+      StartElement startElement,
+      Map<String, String> namespaces,
+      Map<String, String> contextMap,
+      boolean featureTypeFound)
+      throws XMLStreamException {
+    mapNamespaces(startElement, namespaces);
+    if (!featureTypeFound) {
+      if (canHandleFeatureType(startElement)) {
+        String id =
+            getIdAttributeValue(
+                startElement, namespaces, getNamespaceAlias(GML_NAMESPACE, namespaces));
+        contextMap.put(METACARD_ID, id);
+        return true;
+      }
+    } else {
+      XMLEvent eventPeek = xmlEventReader.peek();
+      if (eventPeek.isStartElement() && isGmlElement(eventPeek.asStartElement(), namespaces)) {
+        readGmlData(xmlEventReader, startElement.getName().getLocalPart(), contextMap);
+      }
+    }
+    return false;
+  }
+
+  private boolean isGmlElement(StartElement startElement, Map<String, String> namespaces) {
+    String gmlNamespaceAlias = getNamespaceAlias(GML_NAMESPACE, namespaces);
+    if (StringUtils.isBlank(gmlNamespaceAlias)) {
+      return false;
+    }
+    return startElement.getName().getPrefix().equals(gmlNamespaceAlias);
+  }
+
+  private boolean canHandleFeatureType(StartElement startElement) {
+    return startElement.getName().getLocalPart().equals(featureTypeQName.getLocalPart());
+  }
+
+  private String getNamespaceAlias(String namespace, Map<String, String> namespaces) {
+    return namespaces
+        .entrySet()
+        .stream()
+        .filter(entry -> entry.getValue().contains(namespace))
+        .map(Map.Entry::getKey)
+        .findFirst()
+        .orElse("");
   }
 
   private String getIdAttributeValue(
@@ -289,7 +292,7 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
   }
 
   private void readGmlData(
-      XMLEventReader xmlEventReader, String elementName, Map<String, String> namespaces)
+      XMLEventReader xmlEventReader, String elementName, Map<String, String> contextMap)
       throws XMLStreamException {
     int count = 0;
     XMLEventWriter eventWriter = null;
@@ -330,9 +333,7 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
     }
 
     LOGGER.debug("String writer: {}", stringWriter);
-    String wkt = getWktFromGeometry(stringWriter.toString());
-    LOGGER.debug("String wkt value: {}", wkt);
-    contextMap.put(elementName, wkt);
+    contextMap.put(elementName, stringWriter.toString());
   }
 
   private void lookupMetacardType(WfsMetadata metadata) {
@@ -349,14 +350,14 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
     }
   }
 
-  private Metacard createMetacard() {
+  private Metacard createMetacard(Map<String, String> contextMap) {
     MetacardImpl metacard = new MetacardImpl(metacardType);
 
     List<Attribute> attributes =
         mappingEntries
             .values()
             .stream()
-            .map(this::createAttribute)
+            .map(entry -> createAttribute(entry, contextMap))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
@@ -385,7 +386,7 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
             .iterator());
   }
 
-  private Attribute createAttribute(FeatureAttributeEntry entry) {
+  private Attribute createAttribute(FeatureAttributeEntry entry, Map<String, String> contextMap) {
     String value;
     if (StringUtils.isNotBlank(entry.getTemplateText())) {
       value = entry.getMappingFunction().apply(contextMap);
@@ -446,7 +447,7 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
     return attributeValue;
   }
 
-  protected Serializable getValueForAttributeFormat(
+  private Serializable getValueForAttributeFormat(
       AttributeType.AttributeFormat attributeFormat, String value) {
 
     Serializable serializable = null;
@@ -471,8 +472,15 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
         break;
       case XML:
       case STRING:
-      case GEOMETRY:
         serializable = value;
+        break;
+      case GEOMETRY:
+        LOGGER.trace("Unescape the geometry: {}", value);
+        value = StringEscapeUtils.unescapeXml(value);
+        LOGGER.debug("Geometry value after it has been xml unescaped: {}", value);
+        String wkt = getWktFromGeometry(value);
+        LOGGER.debug("String wkt value: {}", wkt);
+        serializable = wkt;
         break;
       case BINARY:
         try {
@@ -482,7 +490,11 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
         }
         break;
       case DATE:
-        serializable = DatatypeConverter.parseDate(value).getTime();
+        try {
+          serializable = DatatypeConverter.parseDate(value).getTime();
+        } catch (IllegalArgumentException e) {
+          LOGGER.debug("Error converting value to a date. value: '{}'", value, e);
+        }
         break;
       default:
         break;
@@ -532,10 +544,6 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
     return false;
   }
 
-  private boolean canMap(StartElement startElement, Map<String, String> namespaces) {
-    return namespaces.keySet().contains(startElement.getName().getPrefix());
-  }
-
   private void mapNamespaces(StartElement startElement, Map<String, String> map) {
 
     for (Iterator i = startElement.getNamespaces(); i.hasNext(); ) {
@@ -544,11 +552,17 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
     }
   }
 
-  private boolean canHandleNameSpace(Namespace namespace) {
-    return featureType.equals(namespace.getNamespaceURI());
-  }
+  private boolean isStateValid(InputStream inputStream, WfsMetadata metadata) {
+    if (inputStream == null) {
+      LOGGER.debug("Received a null input stream.");
+      return false;
+    }
 
-  private boolean isStateValid() {
+    if (metadata == null) {
+      LOGGER.debug("Received a null WfsMetadata object.");
+      return false;
+    }
+
     if (StringUtils.isBlank(featureType)) {
       LOGGER.debug("Feature type must contain a value: {}", featureType);
       return false;
@@ -556,18 +570,6 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
 
     if (CollectionUtils.isEmpty(mappingEntries.values())) {
       LOGGER.debug("There are no mappings for feature type: {}", featureType);
-      return false;
-    }
-
-    if (featureTypeQName == null) {
-      LOGGER.debug(
-          "Feature type must be formatted as '{URI}local-name'. Feature type: {}", featureType);
-      return false;
-    }
-
-    if (attributeRegistry == null) {
-      LOGGER.debug(
-          "Must have access to the attribute registry. Can't transform the feature without it.");
       return false;
     }
 
@@ -593,10 +595,6 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
     dataUnit = unit;
   }
 
-  public String getFeatureType() {
-    return this.featureType;
-  }
-
   public void setFeatureType(String featureType) {
     LOGGER.trace("Setting feature type to: {}", featureType);
     this.featureType = featureType;
@@ -605,10 +603,6 @@ public class HandlebarsWfsFeatureTransformer implements FeatureTransformer<Featu
 
   public void setMetacardTypeRegistry(WfsMetacardTypeRegistry metacardTypeRegistry) {
     this.metacardTypeRegistry = metacardTypeRegistry;
-  }
-
-  public void setAttributeRegistry(AttributeRegistry attributeRegistry) {
-    this.attributeRegistry = attributeRegistry;
   }
 
   /**

@@ -28,12 +28,10 @@
                 class="org.codice.ddf.spatial.ogc.wfs.transformer.handlebars.HandlebarsWfsFeatureTransformer">
             <cm:managed-properties persistent-id="" update-strategy="container-managed"/>
             <property name="metacardTypeRegistry" ref="wfsMetacardTypeRegistry"/>
-            <property name="attributeRegistry" ref="attributeRegistry"/>
         </cm:managed-component>
     </cm:managed-service-factory>
 
     <reference id="wfsMetacardTypeRegistry" interface="org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry.WfsMetacardTypeRegistry"/>
-    <reference id="attributeRegistry" interface="ddf.catalog.data.AttributeRegistry"/>
 </blueprint>
 
 

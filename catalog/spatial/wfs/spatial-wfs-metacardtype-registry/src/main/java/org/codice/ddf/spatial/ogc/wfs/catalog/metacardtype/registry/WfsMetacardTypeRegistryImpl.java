@@ -20,7 +20,6 @@ import java.util.Dictionary;
 import java.util.List;
 import java.util.Optional;
 import org.codice.ddf.configuration.DictionaryMap;
-import org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry.api.WfsMetacardTypeRegistry;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 

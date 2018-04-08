@@ -14,12 +14,13 @@
 package org.codice.ddf.spatial.ogc.wfs.transformer.handlebars;
 
 import com.github.jknack.handlebars.Handlebars;
+import com.github.jknack.handlebars.HandlebarsException;
 import com.github.jknack.handlebars.Template;
 import com.github.jknack.handlebars.helper.StringHelpers;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
-import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +59,9 @@ final class FeatureAttributeEntry {
     try {
       this.template = handleBars.compileInline(templateText);
     } catch (IOException e) {
-      LOGGER.error("Could not compile handlebars template: {}. ", templateText, e);
+      LOGGER.debug("Could not compile handlebars template: {}. ", templateText, e);
+    } catch (HandlebarsException e) {
+      LOGGER.debug("Error compiling template for entry: {}", toString(), e);
     }
   }
 
@@ -79,9 +82,13 @@ final class FeatureAttributeEntry {
   }
 
   private String applyTemplate(Map<String, String> map) {
+    if (template == null) {
+      LOGGER.debug("Error applying template for entry: {}. The template is null.", toString());
+      return null;
+    }
     try {
       return template.apply(map);
-    } catch (IOException ioe) {
+    } catch (IOException | IllegalArgumentException ioe) {
       LOGGER.error("Unable to apply template {}", templateText, ioe);
     }
 
