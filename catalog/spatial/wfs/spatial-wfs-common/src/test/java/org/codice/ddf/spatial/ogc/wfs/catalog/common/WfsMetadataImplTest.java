@@ -17,7 +17,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
-import org.codice.ddf.spatial.ogc.wfs.catalog.message.api.WfsMetadata;
+import org.codice.ddf.spatial.ogc.wfs.featuretransformer.WfsMetadata;
 import org.junit.Before;
 import org.junit.Test;
 

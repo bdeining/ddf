@@ -19,8 +19,8 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
-import org.codice.ddf.spatial.ogc.wfs.catalog.message.api.FeatureTransformer;
-import org.codice.ddf.spatial.ogc.wfs.catalog.message.api.WfsMetadata;
+import org.codice.ddf.spatial.ogc.wfs.featuretransformer.FeatureTransformer;
+import org.codice.ddf.spatial.ogc.wfs.featuretransformer.WfsMetadata;
 
 public final class WfsTransformerProcessor {
   private List<FeatureTransformer> transformerServiceList;

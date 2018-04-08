@@ -56,7 +56,7 @@
                     <instructions>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Export-Package>
-                            org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry.api
+                            org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry
                         </Export-Package>
                         <Import-Package>
                             !ddf.catalog.data.impl*,

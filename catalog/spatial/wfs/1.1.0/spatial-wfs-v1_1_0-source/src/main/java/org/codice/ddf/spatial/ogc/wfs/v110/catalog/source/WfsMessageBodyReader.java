@@ -23,8 +23,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.MessageBodyReader;
 import net.opengis.wfs.v_1_1_0.FeatureTypeType;
 import org.codice.ddf.spatial.ogc.wfs.catalog.common.WfsFeatureCollection;
-import org.codice.ddf.spatial.ogc.wfs.catalog.message.api.FeatureTransformationService;
-import org.codice.ddf.spatial.ogc.wfs.catalog.message.api.WfsMetadata;
+import org.codice.ddf.spatial.ogc.wfs.featuretransformer.FeatureTransformationService;
+import org.codice.ddf.spatial.ogc.wfs.featuretransformer.WfsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

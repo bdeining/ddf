@@ -17,10 +17,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
-
 import org.codice.ddf.spatial.ogc.wfs.featuretransformer.WfsMetadata;
 
-public final class WfsMetadataImpl<T> implements WfsMetadata {
+public final class WfsMetadataImpl<T> implements WfsMetadata<T> {
   private final Supplier<String> idSupplier;
 
   private final Supplier<String> coordinateOrderSupplier;

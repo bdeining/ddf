@@ -35,7 +35,7 @@
 
     <reference id="metacardTypeRegistry" interface="org.codice.ddf.spatial.ogc.wfs.catalog.metacardtype.registry.WfsMetacardTypeRegistry"/>
 
-    <reference id="featureTransformationService" interface="org.codice.ddf.spatial.ogc.wfs.catalog.message.api.FeatureTransformationService"/>
+    <reference id="featureTransformationService" interface="org.codice.ddf.spatial.ogc.wfs.featuretransformer.FeatureTransformationService"/>
 
     <cm:managed-service-factory
             id="org.codice.ddf.spatial.ogc.wfs.v110.catalog.source.WfsFederatedSource.id"
