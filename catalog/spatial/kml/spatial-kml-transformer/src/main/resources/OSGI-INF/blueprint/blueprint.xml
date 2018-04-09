@@ -134,4 +134,17 @@
         </service-properties>
     </service>
 
+    <bean id="kmzMetacardTransformer"
+          class="org.codice.ddf.spatial.kml.transformer.KmzTransformer">
+        <argument ref="kmlTransformerImpl"/>
+        <argument value="kmz"/>
+    </bean>
+
+  <service ref="kmzMetacardTransformer"
+    interface="org.codice.ddf.catalog.transform.MultiMetacardTransformer">
+    <service-properties>
+      <entry key="id" value="kmz"/>
+    </service-properties>
+  </service>
+
 </blueprint>

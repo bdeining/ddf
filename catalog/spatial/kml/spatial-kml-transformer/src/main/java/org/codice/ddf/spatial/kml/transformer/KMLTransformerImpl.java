@@ -84,7 +84,7 @@ import org.springframework.util.CollectionUtils;
 
 /**
  * The base Transformer for handling KML requests to take {@link Metacard}, {@link SourceResponse},
- * or {@Link List<Metacard>} and produce a KML representation. This service attempts to first locate
+ * or {@link List<Metacard>} and produce a KML representation. This service attempts to first locate
  * a {@link KMLEntryTransformer} for a given {@link Metacard} based on the metadata-content-type. If
  * no {@link KMLEntryTransformer} can be found, the default transformation is performed.
  *
@@ -500,7 +500,7 @@ public class KMLTransformerImpl implements KMLTransformer {
 
     InputStream kmlInputStream =
         new ByteArrayInputStream(transformedKml.getBytes(StandardCharsets.UTF_8));
-    LOGGER.trace("EXITING: ResponseQueue transform");
+
     return new BinaryContentImpl(kmlInputStream, KML_MIMETYPE);
   }
 
@@ -528,8 +528,10 @@ public class KMLTransformerImpl implements KMLTransformer {
       List<Metacard> metacards, Map<String, ? extends Serializable> arguments)
       throws CatalogTransformerException {
 
-    return Collections.singletonList(
-        getBinaryContent(metacards, (Map<String, Serializable>) arguments));
+    Map<String, Serializable> copy = new HashMap<>(arguments);
+    copy.putIfAbsent("docName", "KML List Export");
+
+    return Collections.singletonList(getBinaryContent(metacards, copy));
   }
 
   @Override
