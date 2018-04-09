@@ -88,7 +88,6 @@
         </dependencies>
     </dependencyManagement>
     <modules>
-        <module>catalog-transformer-csv</module>
         <module>catalog-transformer-attribute</module>
         <module>catalog-transformer-service-xslt</module>
         <module>catalog-transformer-resource</module>
@@ -113,5 +112,8 @@
         <module>catalog-transformer-exploding-zip</module>
         <module>catalog-transformer-propertyjson-metacard</module>
         <module>catalog-transformer-preview</module>
+        <module>catalog-transformer-csv-common</module>
+        <module>catalog-transformer-csv-metacard</module>
+        <module>catalog-transformer-csv-queryresponse</module>
     </modules>
 </project>
