@@ -13,8 +13,12 @@
  */
 package org.codice.ddf.spatial.kml.transformer;
 
+import static org.codice.ddf.spatial.kml.transformer.KMLTransformerImpl.DOC_NAME_ARG;
+import static org.codice.ddf.spatial.kml.transformer.KMLTransformerImpl.SKIP_UNTRANSFORMABLE_ITEMS_ARG;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathExists;
+import static org.custommonkey.xmlunit.XMLAssert.assertXpathNotExists;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -41,6 +45,7 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +95,8 @@ public class KMLTransformerImplTest {
   private static KMLTransformerImpl kmlTransformer;
 
   private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+
+  private static final String DOC_NAME_DEFAULT = "KML Metacard Export";
 
   @BeforeClass
   public static void setUp() throws IOException {
@@ -271,9 +278,48 @@ public class KMLTransformerImplTest {
     IOUtils.toString(content.getInputStream());
   }
 
+  // Tests that an invalid metacard causes an exception to be thrown.
+  @Test(expected = CatalogTransformerException.class)
+  public void testTransformMetacardListThrowException() throws CatalogTransformerException {
+    List<Metacard> metacardList = getMetacards();
+    Map<String, String> arguments = Collections.singletonMap(DOC_NAME_ARG, DOC_NAME_DEFAULT);
+    kmlTransformer.transform(metacardList, arguments);
+  }
+
+  // Tests that an invalid metacard does not throw an exception, but is instead 
+  // skipped because the skipUntransformableItems argument is given.
   @Test
-  public void testTransformMetacardList()
+  public void testTransformMetacardListSkipUntransformable()
       throws CatalogTransformerException, IOException, XpathException, SAXException {
+    List<Metacard> metacardList = getMetacards();
+
+    Map<String, Serializable> args = new HashMap<>();
+    args.put(DOC_NAME_ARG, DOC_NAME_DEFAULT);
+    args.put(SKIP_UNTRANSFORMABLE_ITEMS_ARG, true);
+
+    List<BinaryContent> bc = kmlTransformer.transform(metacardList, args);
+    assertThat(bc, hasSize(1));
+
+    BinaryContent file = bc.get(0);
+    assertThat(file.getMimeTypeValue(), is(KMLTransformerImpl.KML_MIMETYPE.toString()));
+
+    String outputKml = new String(file.getByteArray());
+
+    // Prefixing with a single slash indicates root. Two slashes means a PathExpression can match
+    // anywhere no matter what the prefix is. For kml Xpath testing, the xmlns attribute of a kml
+    // document must be set in the prefix map as 'm' in the @Before method and you must reference
+    // fields in the document with that prefix like so.
+
+    assertXpathExists("/m:kml", outputKml);
+    assertXpathExists("//m:Document", outputKml);
+    assertXpathEvaluatesTo(DOC_NAME_DEFAULT, "//m:Document/m:name", outputKml);
+    assertXpathExists("//m:Placemark[@id='Placemark-UUID-1']/m:name", outputKml);
+    assertXpathExists("//m:Placemark[@id='Placemark-UUID-2']/m:name", outputKml);
+    assertXpathNotExists("//m:Placemark[@id='Placemark-UUID-3']/m:name", outputKml);
+  }
+
+  // Returns a list of metacards for testing, 2 valid and 1 invalid.
+  private List<Metacard> getMetacards() {
     List<Metacard> metacardList = new ArrayList<>();
 
     MetacardImpl metacard1 = createMockMetacard();
@@ -288,27 +334,12 @@ public class KMLTransformerImplTest {
     metacard2.setLocation("POINT (-112.2626 33.5276)");
     metacardList.add(metacard2);
 
-    Map<String, Serializable> args = new HashMap<>();
-    args.put("docName", "KML Metacard Export");
-
-    List<BinaryContent> bc = kmlTransformer.transform(metacardList, args);
-    assertThat(bc.size(), is(1));
-
-    BinaryContent file = bc.get(0);
-    assertThat(file.getMimeTypeValue(), is(KMLTransformerImpl.KML_MIMETYPE.toString()));
-
-    String outputKml = new String(file.getByteArray());
-
-    // Prefixing with a single slash indicates root. Two slashes means a PathExpression can match
-    // anywhere no matter what the prefix is. For kml Xpath testing, the xmlns attribute of a kml
-    // document must be set in the prefix map as 'm' in the @Before method and you must reference
-    // fields in the document with that prefix like so.
-
-    assertXpathExists("/m:kml", outputKml);
-    assertXpathExists("//m:Document", outputKml);
-    assertXpathEvaluatesTo("KML Metacard Export", "//m:Document/m:name", outputKml);
-    assertXpathExists("//m:Placemark[@id='Placemark-UUID-1']/m:name", outputKml);
-    assertXpathExists("//m:Placemark[@id='Placemark-UUID-2']/m:name", outputKml);
+    MetacardImpl metacard3 = createMockMetacard();
+    metacard3.setId("UUID-3");
+    metacard3.setTitle("Invalid Metacard");
+    metacard3.setLocation("UNKNOWN");
+    metacardList.add(metacard3);
+    return metacardList;
   }
 
   private MetacardImpl createMockMetacard() {
