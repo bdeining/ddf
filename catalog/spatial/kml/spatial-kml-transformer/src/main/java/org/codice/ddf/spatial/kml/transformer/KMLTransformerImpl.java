@@ -19,6 +19,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
+import com.google.common.collect.ImmutableMap;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
@@ -26,6 +27,7 @@ import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import ddf.action.ActionProvider;
+import ddf.catalog.Constants;
 import ddf.catalog.data.BinaryContent;
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.Result;
@@ -115,6 +117,9 @@ public class KMLTransformerImpl implements KMLTransformer {
   protected static final MimeType KML_MIMETYPE = new MimeType();
 
   private static List<StyleSelector> defaultStyle = new ArrayList<StyleSelector>();
+
+  static final String SKIP_UNTRANSFORMABLE_ITEMS_ARG = "skipUntransformableItems";
+  static final String DOC_NAME_ARG = "docName";
 
   static {
     try {
@@ -447,10 +452,13 @@ public class KMLTransformerImpl implements KMLTransformer {
       throw new CatalogTransformerException("Must provide at least one Metacard to transform.");
     }
 
+    final boolean skipUntransformableItems =
+        (boolean) arguments.getOrDefault(SKIP_UNTRANSFORMABLE_ITEMS_ARG, false);
+    final String docNameArgument = (String) arguments.get(DOC_NAME_ARG);
+
     final String docId = UUID.randomUUID().toString();
 
     final String restUriAbsolutePath = (String) arguments.get("url");
-    final String docNameArgument = (String) arguments.get("docName");
     LOGGER.debug("rest string url arg: {}", restUriAbsolutePath);
 
     // Transform Metacards to KML
@@ -465,10 +473,15 @@ public class KMLTransformerImpl implements KMLTransformer {
         }
         kmlDoc.getFeature().add(placemark);
       } catch (CatalogTransformerException e) {
-        LOGGER.debug(
-            "Error transforming current metacard ({}) to KML and will continue with remaining query responses.",
-            metacard.getId(),
-            e);
+        if (!skipUntransformableItems) {
+          throw e;
+        } else {
+          LOGGER.debug(
+              "Error transforming current metacard ({}) to KML and will continue with remaining "
+                  + "metacards.",
+              metacard.getId(),
+              e);
+        }
       }
     }
 
@@ -531,6 +544,9 @@ public class KMLTransformerImpl implements KMLTransformer {
 
   @Override
   public Map<String, Object> getProperties() {
-    return Collections.emptyMap();
+    return new ImmutableMap.Builder<String, Object>()
+        .put(Constants.SERVICE_ID, getId())
+        .put("mime-type", getMimeTypes())
+        .build();
   }
 }
