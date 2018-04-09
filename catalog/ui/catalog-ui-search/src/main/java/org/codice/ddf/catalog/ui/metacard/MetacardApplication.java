@@ -876,7 +876,7 @@ public class MetacardApplication implements SparkApplication {
                     .collect(Collectors.toList());
 
             Map<String, Object> extras =
-                (Map<String, Object>) incoming.getOrDefault("extras", Collections.emptyMap());
+                (Map<String, Object>) incoming.getOrDefault("extensions", Collections.emptyMap());
 
             for (QueryCourier queryDeliveryService : deliveryServices) {
               for (Map<String, Object> matchingDest : matchingDests) {
