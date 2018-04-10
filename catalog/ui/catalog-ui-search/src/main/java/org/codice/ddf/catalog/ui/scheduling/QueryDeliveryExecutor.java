@@ -18,6 +18,7 @@ import static ddf.util.Fallible.forEach;
 import static ddf.util.Fallible.of;
 import static ddf.util.Fallible.success;
 
+import ddf.catalog.data.impl.QueryMetacardTypeImpl;
 import ddf.catalog.federation.FederationException;
 import ddf.catalog.operation.Query;
 import ddf.catalog.operation.QueryRequest;
@@ -45,7 +46,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.ignite.scheduler.SchedulerFuture;
 import org.boon.json.JsonException;
 import org.boon.json.JsonFactory;
-import org.codice.ddf.catalog.ui.metacard.workspace.QueryMetacardTypeImpl;
 import org.codice.ddf.catalog.ui.scheduling.subscribers.QueryCourier;
 import org.codice.ddf.persistence.PersistenceException;
 import org.codice.ddf.persistence.PersistentStore.PersistenceType;
