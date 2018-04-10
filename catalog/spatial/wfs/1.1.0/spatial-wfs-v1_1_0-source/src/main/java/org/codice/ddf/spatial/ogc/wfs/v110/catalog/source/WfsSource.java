@@ -265,6 +265,9 @@ public class WfsSource extends AbstractWfsSource {
     this.metacardToFeatureMappers = Collections.emptyList();
     this.wfsMetacardTypeRegistry = wfsMetacardTypeRegistry;
     this.metacardTypeEnhancers = metacardTypeEnhancers;
+    this.wfsMetadata =
+        new WfsMetadataImpl<>(
+            this::getId, this::getCoordinateOrder, FEATURE_MEMBER_ELEMENT, FeatureTypeType.class);
     initProviders();
     configureWfsFeatures();
   }
