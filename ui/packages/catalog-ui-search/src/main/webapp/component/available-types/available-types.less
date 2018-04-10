@@ -1,0 +1,26 @@
+@{customElementNamespace}available-types {
+
+    .available-type,
+    .available-type-text {
+      line-height: @minimumButtonSize;
+      height: @minimumButtonSize;
+    }
+
+    .available-type {
+          white-space: nowrap;
+          padding: 0px 10px;
+          cursor: pointer;
+          overflow: hidden;
+    }
+
+    .available-type-text {
+          display: inline-block;
+          vertical-align: top;
+    }
+
+    .available-type-text {
+          width: ~'calc(100% - @{minimumButtonSize})';
+          overflow: hidden;
+          text-overflow: ellipsis;
+    }
+}

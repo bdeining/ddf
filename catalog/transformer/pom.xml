@@ -115,5 +115,6 @@
         <module>catalog-transformer-csv-common</module>
         <module>catalog-transformer-csv-metacard</module>
         <module>catalog-transformer-csv-queryresponse</module>
+        <module>catalog-transformer-propertyjson</module>
     </modules>
 </project>
