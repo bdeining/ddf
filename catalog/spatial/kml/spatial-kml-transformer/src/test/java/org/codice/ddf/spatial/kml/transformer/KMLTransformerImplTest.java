@@ -286,7 +286,7 @@ public class KMLTransformerImplTest {
     kmlTransformer.transform(metacardList, arguments);
   }
 
-  // Tests that an invalid metacard does not throw an exception, but is instead 
+  // Tests that an invalid metacard does not throw an exception, but is instead
   // skipped because the skipUntransformableItems argument is given.
   @Test
   public void testTransformMetacardListSkipUntransformable()
