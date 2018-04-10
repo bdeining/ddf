@@ -375,7 +375,9 @@
                             !org.abego.treelayout.*,
                             *
                         </Import-Package>
-                        <Export-Package/>
+                        <Export-Package>
+                            org.codice.ddf.catalog.ui.metacard
+                        </Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
