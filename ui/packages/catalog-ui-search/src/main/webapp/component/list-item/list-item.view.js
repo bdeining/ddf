@@ -26,7 +26,7 @@ var QueryFeedView = require('component/query-feed/query-feed.view');
 var ListInteractionsView = require('component/list-interactions/list-interactions.view');
 var lightboxInstance = require('component/lightbox/lightbox.view.instance');
 var IngestDetailsView = require('component/ingest-details/ingest-details.view');
-var store = require('js/store');
+var ListAddTabsView = require('component/tabs/list-add/tabs-list-add.view');
 
 module.exports = Marionette.LayoutView.extend({
   tagName: CustomElements.register('list-item'),
@@ -131,16 +131,24 @@ module.exports = Marionette.LayoutView.extend({
   triggerAdd: function(e) {
     lightboxInstance.model.updateTitle('Add List Items');
     lightboxInstance.model.open();
-    lightboxInstance.lightboxContent.show(new IngestDetailsView({
+    lightboxInstance.lightboxContent.show(new ListAddTabsView({
         extraHeaders: {
             'List-ID': this.model.attributes.id,
             'List-Type': this.model.get('list.icon')
         },
-        handleUploadSuccess: this.handleUploadSuccess.bind(this),
-        url: '/search/catalog/internal/list/import'
+        url: '/search/catalog/internal/list/import', 
+        handleUploadSuccess: (file) => this.handleUploadSuccess(file), 
+        handleNewMetacard: (id) => this.handleNewMetacard(id), 
+        close: () => lightboxInstance.close() 
     }));
     e.stopPropagation();
   },
+  handleNewMetacard(id) { 
+    if(id) { 
+        this.model.addBookmarks([id]); 
+        this.model.get('query').startSearchIfOutdated(); 
+    } 
+  }, 
   handleUploadSuccess: function(file) {
     var addedIds = file.xhr.getResponseHeader('Added-IDs');
     if(addedIds) {

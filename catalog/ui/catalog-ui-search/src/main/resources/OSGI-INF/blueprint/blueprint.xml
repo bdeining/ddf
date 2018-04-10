@@ -243,6 +243,15 @@
 
     <reference id="attributeRegistry" interface="ddf.catalog.data.AttributeRegistry"/>
 
+    <reference-list id="userCreatableMetacardTypes"
+                    interface="org.codice.ddf.catalog.ui.metacard.UserCreatableMetacardTypes"
+                    availability="optional"/>
+
+    <bean id="buildApplication" class="org.codice.ddf.catalog.ui.metacard.BuildApplication">
+        <argument ref="endpointUtil"/>
+        <argument ref="userCreatableMetacardTypes"/>
+    </bean>
+
     <bean id="metacardApplication" class="org.codice.ddf.catalog.ui.metacard.MetacardApplication">
         <argument ref="catalogFramework"/>
         <argument ref="filterBuilder"/>
@@ -357,6 +366,7 @@
                 <ref component-id="feedbackApplication"/>
                 <ref component-id="searchFormsApplication"/>
                 <ref component-id="listApplication"/>
+                <ref component-id="buildApplication"/>
             </list>
         </property>
         <property name="requestSupplier" ref="rootReqSupplier"/>

@@ -21,10 +21,14 @@ import ddf.catalog.data.types.Core;
 import ddf.catalog.operation.CreateRequest;
 import ddf.catalog.operation.UpdateRequest;
 import ddf.catalog.plugin.groomer.AbstractMetacardGroomerPlugin;
+import ddf.security.SubjectIdentity;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.Date;
 import java.util.Map.Entry;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.subject.Subject;
 import org.codice.ddf.platform.util.uuidgenerator.UuidGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +43,14 @@ public class StandardMetacardGroomerPlugin extends AbstractMetacardGroomerPlugin
 
   private UuidGenerator uuidGenerator;
 
+  private SubjectIdentity subjectIdentity;
+
   public void setUuidGenerator(UuidGenerator uuidGenerator) {
     this.uuidGenerator = uuidGenerator;
+  }
+
+  public void setSubjectIdentity(SubjectIdentity subjectIdentity) {
+    this.subjectIdentity = subjectIdentity;
   }
 
   protected void applyCreatedOperationRules(
@@ -70,6 +80,32 @@ public class StandardMetacardGroomerPlugin extends AbstractMetacardGroomerPlugin
 
     aMetacard.setAttribute(new AttributeImpl(Core.METACARD_MODIFIED, now));
     logMetacardAttributeUpdate(aMetacard, Core.METACARD_MODIFIED, now);
+
+    if (isOwnable(aMetacard)) {
+      Attribute attribute = aMetacard.getAttribute(Core.METACARD_OWNER);
+      if (attribute == null || CollectionUtils.isEmpty(attribute.getValues())) {
+        Subject ownerSubject = getSubject();
+        final String owner = subjectIdentity.getUniqueIdentifier(ownerSubject);
+
+        aMetacard.setAttribute(new AttributeImpl(Core.METACARD_OWNER, owner));
+      }
+    }
+  }
+
+  protected Subject getSubject() {
+    return SecurityUtils.getSubject();
+  }
+
+  /**
+   * Determine if a metacard can be owned by an individual user. Returns {@code true} if the
+   * metacard type contains {@link Core#METACARD_OWNER} and {@link Core#METACARD_TAGS} contains
+   * "resource".
+   */
+  private boolean isOwnable(Metacard metacard) {
+    if (metacard.getMetacardType().getAttributeDescriptor(Core.METACARD_OWNER) != null) {
+      return metacard.getTags().contains("resource");
+    }
+    return false;
   }
 
   private boolean isCatalogResourceUri(URI uri) {

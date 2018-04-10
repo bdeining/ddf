@@ -252,6 +252,7 @@ public class EndpointUtil {
         attributeProperties.put("type", descriptor.getType().getAttributeFormat().name());
         attributeProperties.put("multivalued", descriptor.isMultiValued());
         attributeProperties.put("id", descriptor.getName());
+        attributeProperties.put("isInjected", false);
         attributes.put(descriptor.getName(), attributeProperties);
       }
       resultTypes.put(metacardType.getName(), attributes);
@@ -267,13 +268,12 @@ public class EndpointUtil {
       attributeProperties.put("type", descriptor.getType().getAttributeFormat().name());
       attributeProperties.put("multivalued", descriptor.isMultiValued());
       attributeProperties.put("id", descriptor.getName());
+      attributeProperties.put("isInjected", true);
       Set<String> types =
           attribute.metacardTypes().isEmpty() ? resultTypes.keySet() : attribute.metacardTypes();
       for (String type : types) {
         Map<String, Object> attributes =
             (Map) resultTypes.getOrDefault(type, new HashMap<String, Object>());
-        attributes.put(attribute.attribute(), attributeProperties);
-        resultTypes.put(type, attributes);
       }
     }
 

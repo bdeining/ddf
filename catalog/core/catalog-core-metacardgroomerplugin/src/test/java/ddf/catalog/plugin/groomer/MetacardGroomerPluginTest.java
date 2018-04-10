@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -47,6 +48,7 @@ import ddf.catalog.operation.impl.UpdateRequestImpl;
 import ddf.catalog.plugin.PluginExecutionException;
 import ddf.catalog.plugin.StopProcessingException;
 import ddf.catalog.plugin.groomer.metacard.StandardMetacardGroomerPlugin;
+import ddf.security.SubjectIdentity;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -83,14 +85,19 @@ public class MetacardGroomerPluginTest {
 
   private UuidGenerator uuidGenerator;
 
+  private SubjectIdentity subjectIdentity;
+
   private StandardMetacardGroomerPlugin plugin;
 
   @Before
   public void setUp() {
+    subjectIdentity = mock(SubjectIdentity.class);
+    when(subjectIdentity.getUniqueIdentifier(any())).thenReturn("theOwner");
     uuidGenerator = mock(UuidGenerator.class);
     when(uuidGenerator.generateUuid()).thenReturn(UUID.randomUUID().toString());
     plugin = new StandardMetacardGroomerPlugin();
     plugin.setUuidGenerator(uuidGenerator);
+    plugin.setSubjectIdentity(subjectIdentity);
   }
 
   @Test
