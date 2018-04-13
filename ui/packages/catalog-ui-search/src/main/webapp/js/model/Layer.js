@@ -14,7 +14,7 @@ define([
     'underscore',
     'backbone',
     'js/Common',
-    'backboneassociations'
+    'backbone-associations'
 ], function(_, Backbone, Common) {
 
     return Backbone.Model.extend({
