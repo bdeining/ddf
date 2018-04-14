@@ -1303,4 +1303,8 @@ public class WfsSource extends AbstractWfsSource {
   public String getCoordinateOrder() {
     return this.coordinateOrder;
   }
+
+  public void setWfsMetacardTypeRegistry(WfsMetacardTypeRegistry wfsMetacardTypeRegistry) {
+    this.wfsMetacardTypeRegistry = wfsMetacardTypeRegistry;
+  }
 }
