@@ -21,15 +21,17 @@ define([
     './query-settings.hbs',
     'js/CustomElements',
     'js/store',
+    'js/model/QuerySchedule',
     'component/dropdown/dropdown',
     'component/dropdown/query-src/dropdown.query-src.view',
     'component/property/property.view',
     'component/property/property',
     'component/singletons/user-instance',
     'component/sort-item/sort-item.view',
+    'component/query-schedule/query-schedule.view',
     'js/Common'
-], function (Marionette, Backbone, _, $, template, CustomElements, store, DropdownModel,
-            QuerySrcView, PropertyView, Property, user, SortItemView, Common) {
+], function (Marionette, Backbone, _, $, template, CustomElements, store, QueryScheduleModel, DropdownModel,
+            QuerySrcView, PropertyView, Property, user, SortItemView, ScheduleQueryView, Common) {
 
     return Marionette.LayoutView.extend({
         template: template,
@@ -44,7 +46,8 @@ define([
         },
         regions: {
             settingsSortField: '.settings-sorting-field',
-            settingsSrc: '.settings-src'
+            settingsSrc: '.settings-src',
+            settingsSchedule: '.settings-scheduling'
         },
         ui: {
         },
@@ -57,6 +60,7 @@ define([
         onBeforeShow: function(){
             this.setupSortFieldDropdown();
             this.setupSrcDropdown();
+            this.setupScheduling();
             this.turnOnEditing();
         },
         setupSortFieldDropdown: function() {
@@ -90,6 +94,17 @@ define([
                 }
             });
         },
+        setupScheduling: function() {
+            let username = user.get('user').get('userid');
+            let scheduleModel = this.model.get('schedules').get(username);
+            if (scheduleModel === undefined) {
+                scheduleModel = new QueryScheduleModel({ userId: username });
+            }
+            this.settingsSchedule.show(new ScheduleQueryView({
+                model: scheduleModel
+            }));
+            this.settingsSchedule.currentView.turnOffEditing();
+        },
         turnOnEditing: function(){
            this.$el.addClass('is-editing');
             this.regionManager.forEach(function(region){
@@ -115,11 +130,14 @@ define([
             }
             var sortField = this.settingsSortField.currentView.getSortField();
             var sortOrder = this.settingsSortField.currentView.getSortOrder();
+            var scheduleModel = this.settingsSchedule.currentView.getSchedulingConfiguration();
+            this.model.get('schedules').add(scheduleModel, {merge: true});
             return {
                 src: src,
                 federation: federation,
                 sortField: sortField,
-                sortOrder: sortOrder
+                sortOrder: sortOrder,
+                schedules: this.model.get('schedules')
             };
         },
         saveToModel: function(){
