@@ -20,18 +20,16 @@ var Marionette = require('marionette');
 var CustomElements = require('js/CustomElements');
 var Common = require('js/Common');
 var RowView = require('./row.view');
-require('behaviors/selection.behavior');
+var ResultSelectionDecorator = require('decorator/result-selection.decorator');
+var Decorators = require('decorator/Decorators');
 
-module.exports = Marionette.CollectionView.extend({
+module.exports = Marionette.CollectionView.extend(Decorators.decorate({
     tagName: CustomElements.register('result-tbody'),
     className: 'is-tbody is-list has-list-highlighting',
-    behaviors: function() {
-        return {
-            selection: {
-                selectionInterface: this.options.selectionInterface,
-                selectionSelector: `> *`
-            }
-        };   
+    events: {
+        'click > *': 'handleClick',
+        'mousedown > *': 'handleMouseDown',
+        'click a': 'handleLinkClick'
     },
     childView: RowView,
     childViewOptions: function() {
@@ -43,5 +41,12 @@ module.exports = Marionette.CollectionView.extend({
         if (!options.selectionInterface) {
             throw 'Selection interface has not been provided';
         }
+        this.selectionInterface = this.options.selectionInterface;
+    },
+    handleLinkClick: function(event) {
+        event.stopPropagation();
+    },
+    handleMouseDown: function(event) {
+        event.preventDefault();
     }
-});
+}, ResultSelectionDecorator));
