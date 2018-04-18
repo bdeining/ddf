@@ -10,7 +10,7 @@
  *
  **/
 var Backbone = require('backbone');
-require('backbone-associations');
+require('backboneassociations');
 
 module.exports = Backbone.AssociatedModel.extend({
     idAttribute: 'userId',
