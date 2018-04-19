@@ -16,10 +16,8 @@
 var Marionette = require('marionette');
 var template = require('./available-types.hbs');
 var CustomElements = require('js/CustomElements');
-var MenuNavigationDecorator = require('decorator/menu-navigation.decorator');
-var Decorators = require('decorator/Decorators');
 
-module.exports = Marionette.ItemView.extend(Decorators.decorate({
+module.exports = Marionette.ItemView.extend({
     template: template,
     tagName: CustomElements.register('available-types'),
     className: 'is-type-list',
@@ -35,4 +33,4 @@ module.exports = Marionette.ItemView.extend(Decorators.decorate({
     serializeData() {
         return this.model.get('availableTypes').availabletypes;
     }
-}, MenuNavigationDecorator));
+});
