@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Endpoint;
+import org.apache.camel.builder.NoErrorHandlerBuilder;
 import org.apache.camel.component.bean.ProxyHelper;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.impl.SimpleRegistry;
@@ -58,10 +59,11 @@ public class FeatureTransformationServiceTest {
     registry.put("wfsTransformerProcessor", new WfsTransformerProcessor(transformerList));
 
     this.camelContext = new DefaultCamelContext(registry);
-    camelContext.addRoutes(new WfsRouteBuilder());
     camelContext.setTracing(true);
+    camelContext.addRoutes(new WfsRouteBuilder());
+    camelContext.setErrorHandlerBuilder(new NoErrorHandlerBuilder());
 
-    endpoint = camelContext.getEndpoint(WfsRouteBuilder.ENDPOINT_URL);
+    endpoint = camelContext.getEndpoint(WfsRouteBuilder.FEATURECOLLECTION_ENDPOINT_URL);
     featureTransformationService = ProxyHelper.createProxy(endpoint, BiFunction.class);
     camelContext.start();
   }
@@ -89,6 +91,26 @@ public class FeatureTransformationServiceTest {
     }
 
     assertThat(metacards, hasSize(10));
+  }
+
+  @Test
+  public void testApplyBadXML() {
+    InputStream inputStream =
+        new BufferedInputStream(
+            FeatureTransformationServiceTest.class.getResourceAsStream("/Broken.xml"));
+
+    WfsMetadata wfsMetadata = mock(WfsMetadata.class);
+    when(wfsMetadata.getFeatureMemberNodeName()).thenReturn("featureMember");
+
+    List<Metacard> metacards = featureTransformationService.apply(inputStream, wfsMetadata);
+    ArgumentCaptor<InputStream> inputStreamArgumentCaptor =
+        ArgumentCaptor.forClass(InputStream.class);
+    ArgumentCaptor<WfsMetadata> wfsMetadataArgumentCaptor =
+        ArgumentCaptor.forClass(WfsMetadata.class);
+    verify(transformerList.get(0), times(0))
+        .apply(inputStreamArgumentCaptor.capture(), wfsMetadataArgumentCaptor.capture());
+
+    assertThat(metacards, hasSize(0));
   }
 
   private void setupTransformers() {

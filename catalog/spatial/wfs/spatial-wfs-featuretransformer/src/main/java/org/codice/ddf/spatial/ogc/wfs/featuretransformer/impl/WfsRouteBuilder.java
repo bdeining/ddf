@@ -14,7 +14,9 @@
 package org.codice.ddf.spatial.ogc.wfs.featuretransformer.impl;
 
 import ddf.catalog.data.Metacard;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.camel.Exchange;
@@ -22,10 +24,14 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.processor.aggregate.AggregationStrategy;
 
 public final class WfsRouteBuilder extends RouteBuilder {
-  protected static final String ENDPOINT_URL = "direct://wfsTransform";
+  protected static final String FEATURECOLLECTION_ENDPOINT_URL =
+      "direct://wfsTransformFeatureCollection";
+
+  protected static final String FEATUREMEMBER_ENDPOINT_URL = "direct://wfsTransformFeatureMember";
 
   public void configure() {
-    from(ENDPOINT_URL)
+    from(FEATURECOLLECTION_ENDPOINT_URL)
+        .id("TransformFeatureCollectionRoute")
         .setHeader("metadata", simple("${body.getArgs()[1]}"))
         .setBody(simple("${body.getArgs()[0]}"))
         .streamCaching()
@@ -33,8 +39,15 @@ public final class WfsRouteBuilder extends RouteBuilder {
             body().tokenizeXML("${header.metadata.featureMemberNodeName}", "FeatureCollection"),
             new WfsMemberAggregationStrategy())
         .streaming()
-        .bean("wfsTransformerProcessor", "apply(${body}, ${header.metadata})")
-        .end();
+        .to(FEATUREMEMBER_ENDPOINT_URL)
+        .end()
+        .choice()
+        .when(body().isInstanceOf(InputStream.class))
+        .setBody(constant(Collections.emptyList()));
+
+    from(FEATUREMEMBER_ENDPOINT_URL)
+        .id("TransformFeatureMemberRoute")
+        .bean("wfsTransformerProcessor", "apply(${body}, ${header.metadata})");
   }
 
   public static class WfsMemberAggregationStrategy implements AggregationStrategy {
