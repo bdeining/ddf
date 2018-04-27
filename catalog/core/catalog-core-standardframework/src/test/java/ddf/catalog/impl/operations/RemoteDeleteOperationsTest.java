@@ -62,6 +62,7 @@ import java.util.stream.Collectors;
 import javax.activation.MimeType;
 import org.codice.ddf.catalog.transform.Transform;
 import org.codice.ddf.catalog.transform.TransformResponse;
+import org.codice.ddf.platform.util.uuidgenerator.UuidGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -325,10 +326,6 @@ public class RemoteDeleteOperationsTest {
             any(String.class),
             any(Map.class)))
         .thenReturn(transformResponse);
-    inputTransformer = mock(InputTransformer.class);
-    when(inputTransformer.transform(any(InputStream.class))).thenReturn(new MetacardImpl());
-    when(mimeTypeToTransformerMapper.findMatches(any(Class.class), any(MimeType.class)))
-        .thenReturn(Collections.singletonList(inputTransformer));
 
     mockSourceActionRegistry = mock(ActionRegistry.class);
     when(mockSourceActionRegistry.list(any())).thenReturn(Collections.emptyList());

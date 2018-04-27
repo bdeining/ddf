@@ -423,8 +423,7 @@ public class CatalogFrameworkImplTest {
     when(sourceActionRegistry.list(any())).thenReturn(Collections.emptyList());
 
     OperationsSecuritySupport opsSecurity = new OperationsSecuritySupport();
-    OperationsMetacardSupport opsMetacard =
-        new OperationsMetacardSupport(frameworkProperties);
+    OperationsMetacardSupport opsMetacard = new OperationsMetacardSupport(frameworkProperties);
     SourceOperations sourceOperations =
         new SourceOperations(frameworkProperties, sourceActionRegistry);
 
@@ -1411,8 +1410,7 @@ public class CatalogFrameworkImplTest {
   private CatalogFrameworkImpl createFramework(FrameworkProperties frameworkProperties) {
     OperationsSecuritySupport opsSecurity = new OperationsSecuritySupport();
 
-    OperationsMetacardSupport opsMetacard =
-        new OperationsMetacardSupport(frameworkProperties);
+    OperationsMetacardSupport opsMetacard = new OperationsMetacardSupport(frameworkProperties);
     SourceOperations sourceOperations =
         new SourceOperations(frameworkProperties, sourceActionRegistry);
 

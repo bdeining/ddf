@@ -134,8 +134,7 @@ public class FanoutCatalogFrameworkTest {
 
   private CatalogFrameworkImpl createCatalogFramework(FrameworkProperties frameworkProperties) {
     OperationsSecuritySupport opsSecurity = new OperationsSecuritySupport();
-    OperationsMetacardSupport opsMetacard =
-        new OperationsMetacardSupport(frameworkProperties);
+    OperationsMetacardSupport opsMetacard = new OperationsMetacardSupport(frameworkProperties);
     SourceOperations sourceOperations =
         new SourceOperations(frameworkProperties, sourceActionRegistry);
     TransformOperations transformOperations = new TransformOperations(frameworkProperties);
@@ -433,8 +432,7 @@ public class FanoutCatalogFrameworkTest {
     frameworkProperties.setQueryResponsePostProcessor(queryResponsePostProcessor);
 
     OperationsSecuritySupport opsSecurity = new OperationsSecuritySupport();
-    OperationsMetacardSupport opsMetacard =
-        new OperationsMetacardSupport(frameworkProperties);
+    OperationsMetacardSupport opsMetacard = new OperationsMetacardSupport(frameworkProperties);
     SourceOperations sourceOperations =
         new SourceOperations(frameworkProperties, sourceActionRegistry);
     sourceOperations.bind(catalogProvider);
@@ -502,8 +500,7 @@ public class FanoutCatalogFrameworkTest {
     frameworkProperties.setTransform(transform);
 
     OperationsSecuritySupport opsSecurity = new OperationsSecuritySupport();
-    OperationsMetacardSupport opsMetacard =
-        new OperationsMetacardSupport(frameworkProperties);
+    OperationsMetacardSupport opsMetacard = new OperationsMetacardSupport(frameworkProperties);
     SourceOperations sourceOperations =
         new SourceOperations(frameworkProperties, sourceActionRegistry);
     sourceOperations.bind(catalogProvider);
