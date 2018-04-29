@@ -40,7 +40,7 @@
                   trace="true">
         <proxy id="featureTransformationService"
                serviceInterface="org.codice.ddf.spatial.ogc.wfs.featuretransformer.FeatureTransformationService"
-               serviceUrl="direct://wfsTransform"/>
+               serviceUrl="direct://wfsTransformFeatureCollection"/>
 
         <routeBuilder ref="wfsRouteBuilder" id="wfsTransformationRoute"/>
     </camelContext>

@@ -69,13 +69,22 @@ public class FeatureTransformationServiceTest {
   }
 
   @Test
-  public void testApply() {
+  public void testApplyWithFeatureMembers() {
+    validateTenMetacards("/Neverland.xml", "featureMember");
+  }
+
+  @Test
+  public void testApplyNoFeatureMembers() {
+    validateTenMetacards("/Neverland2.xml", "PeterPan");
+  }
+
+  private void validateTenMetacards(String inputFileName, String featureNodeName) {
     InputStream inputStream =
         new BufferedInputStream(
-            FeatureTransformationServiceTest.class.getResourceAsStream("/Neverland.xml"));
+            FeatureTransformationServiceTest.class.getResourceAsStream(inputFileName));
 
     WfsMetadata wfsMetadata = mock(WfsMetadata.class);
-    when(wfsMetadata.getFeatureMemberNodeName()).thenReturn("featureMember");
+    when(wfsMetadata.getFeatureMemberNodeName()).thenReturn(featureNodeName);
 
     List<Metacard> metacards = featureTransformationService.apply(inputStream, wfsMetadata);
     ArgumentCaptor<InputStream> inputStreamArgumentCaptor =

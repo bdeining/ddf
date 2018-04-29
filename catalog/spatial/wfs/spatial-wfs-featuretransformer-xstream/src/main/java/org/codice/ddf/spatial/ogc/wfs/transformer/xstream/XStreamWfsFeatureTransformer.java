@@ -20,6 +20,7 @@ import com.thoughtworks.xstream.security.NoTypePermission;
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.MetacardType;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import javax.xml.namespace.QName;
@@ -45,10 +46,32 @@ public abstract class XStreamWfsFeatureTransformer<T> implements FeatureTransfor
 
   protected WfsMetacardTypeRegistry metacardTypeRegistry;
 
+  private XStream xStream;
+
+  private List<QName> featureTypeQNameList;
+
+  public XStreamWfsFeatureTransformer() {
+    this.featureTypeQNameList = new ArrayList<QName>();
+    xStream = new XStream(new WstxDriver());
+    xStream.alias("featureMember", Metacard.class);
+    xStream.addPermission(NoTypePermission.NONE);
+    xStream.allowTypeHierarchy(Metacard.class);
+    xStream.setClassLoader(this.getClass().getClassLoader());
+    xStream.registerConverter(new GmlGeometryConverter());
+    xStream.registerConverter(new GmlEnvelopeConverter());
+  }
+
   @Override
-  public Optional<Metacard> apply(InputStream document, WfsMetadata metadata) {
+  public Optional<Metacard> apply(InputStream document, WfsMetadata<T> metadata) {
     Metacard metacard = null;
-    XStream xStream = createXStream(metadata);
+
+    for (T featureType : metadata.getDescriptors()) {
+      if (!featureTypeQNameList.contains(getFeatureTypeName(featureType))) {
+        lookupFeatureConverter(metadata, featureType).ifPresent(xStream::registerConverter);
+        featureTypeQNameList.add(getFeatureTypeName(featureType));
+      }
+    }
+
     try {
       metacard = (Metacard) xStream.fromXML(document);
     } catch (XStreamException e) {
@@ -56,22 +79,6 @@ public abstract class XStreamWfsFeatureTransformer<T> implements FeatureTransfor
     }
 
     return Optional.ofNullable(metacard);
-  }
-
-  private XStream createXStream(WfsMetadata<T> metadata) {
-    XStream xStream = new XStream(new WstxDriver());
-    xStream.alias("featureMember", Metacard.class);
-    xStream.addPermission(NoTypePermission.NONE);
-    xStream.allowTypeHierarchy(Metacard.class);
-    xStream.setClassLoader(this.getClass().getClassLoader());
-    xStream.registerConverter(new GmlGeometryConverter());
-    xStream.registerConverter(new GmlEnvelopeConverter());
-
-    for (T featureType : metadata.getDescriptors()) {
-      lookupFeatureConverter(metadata, featureType).ifPresent(xStream::registerConverter);
-    }
-
-    return xStream;
   }
 
   protected Optional<FeatureConverter> lookupFeatureConverter(
