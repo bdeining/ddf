@@ -14,7 +14,7 @@
  **/
 /*global define*/
 /* jshint -W024*/
-define(['backbone', 'jquery','backboneassociations'],function (Backbone, $) {
+define(['backbone', 'jquery','backbone-associations'],function (Backbone, $) {
 
     function isServiceFactory(properties){
         return properties.get('service.factoryPid');

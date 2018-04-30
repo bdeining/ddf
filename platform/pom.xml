@@ -377,5 +377,6 @@
         <module>email</module>
         <module>osgi</module>
         <module>branding-registry-impl</module>
+        <module>ignite</module>
     </modules>
 </project>

@@ -629,11 +629,12 @@ public abstract class AbstractIntegrationTest {
         // avoid integration tests stealing focus on OS X
         vmOption("-Djava.awt.headless=true"),
         vmOption("-Dfile.encoding=UTF8"),
-        vmOption("-Dpolicy.provider=net.sourceforge.prograde.policy.ProGradePolicy"),
-        vmOption("-Djava.security.manager=net.sourceforge.prograde.sm.ProGradeJSM"),
-        HomeAwareVmOption.homeAwareVmOption("-Djava.security.policy=={karaf.home}/etc/all.policy"),
-        vmOption(
-            "-DproGrade.getPermissions.override=sun.rmi.server.LoaderHandler:loadClass,org.apache.jasper.compiler.JspRuntimeContext:initSecurity"),
+        // vmOption("-Dpolicy.provider=net.sourceforge.prograde.policy.ProGradePolicy"),
+        // vmOption("-Djava.security.manager=net.sourceforge.prograde.sm.ProGradeJSM"),
+        // HomeAwareVmOption.homeAwareVmOption("-Djava.security.policy=={karaf.home}/etc/all.policy"),
+        // vmOption(
+        //
+        // "-DproGrade.getPermissions.override=sun.rmi.server.LoaderHandler:loadClass,org.apache.jasper.compiler.JspRuntimeContext:initSecurity"),
         HomeAwareVmOption.homeAwareVmOption("-Dddf.home={karaf.home}"),
         HomePermVmOption.homePermVmOption("-Dddf.home.perm={karaf.home}"),
         HomePolicyVmOption.homePolicyVmOption("-Dddf.home.policy={karaf.home}"));

@@ -17,7 +17,7 @@
 define([
     'backbone',
     'jquery',
-    'backboneassociations'
+    'backbone-associations'
     ], function (Backbone, $) {
 
     var Configuration = {};
