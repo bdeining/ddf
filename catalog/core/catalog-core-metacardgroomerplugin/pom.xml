@@ -44,6 +44,14 @@
             <artifactId>util-uuidgenerator-api</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>ddf.security</groupId>
+            <artifactId>ddf-security-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ddf.security.core</groupId>
+            <artifactId>security-core-api</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

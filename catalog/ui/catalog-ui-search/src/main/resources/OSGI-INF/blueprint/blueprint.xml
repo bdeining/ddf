@@ -87,11 +87,11 @@
     </bean>
 
     <service interface="ddf.catalog.data.MetacardType">
-        <bean class="org.codice.ddf.catalog.ui.metacard.workspace.QueryMetacardTypeImpl"/>
+        <bean class="ddf.catalog.data.impl.QueryMetacardTypeImpl"/>
     </service>
 
     <service interface="ddf.catalog.data.MetacardType">
-        <bean class="org.codice.ddf.catalog.ui.metacard.workspace.ListMetacardTypeImpl"/>
+        <bean class="ddf.catalog.data.impl.ListMetacardTypeImpl"/>
     </service>
 
     <bean id="shareableMetacardPreIngestPlugin"
@@ -187,6 +187,7 @@
         <argument ref="catalogFramework"/>
         <argument ref="inputTransformer"/>
         <argument ref="endpointUtil"/>
+        <argument ref="metacardActionRegistry"/>
     </bean>
 
     <bean id="validator" class="org.codice.ddf.catalog.ui.metacard.validation.Validator">
@@ -242,6 +243,15 @@
 
     <reference id="attributeRegistry" interface="ddf.catalog.data.AttributeRegistry"/>
 
+    <reference-list id="userCreatableMetacardTypes"
+                    interface="org.codice.ddf.catalog.ui.metacard.UserCreatableMetacardTypes"
+                    availability="optional"/>
+
+    <bean id="buildApplication" class="org.codice.ddf.catalog.ui.metacard.BuildApplication">
+        <argument ref="endpointUtil"/>
+        <argument ref="userCreatableMetacardTypes"/>
+    </bean>
+
     <bean id="metacardApplication" class="org.codice.ddf.catalog.ui.metacard.MetacardApplication">
         <argument ref="catalogFramework"/>
         <argument ref="filterBuilder"/>
@@ -258,6 +268,16 @@
         <argument ref="attributeRegistry"/>
         <argument ref="configurationApplication"/>
         <argument ref="noteUtil"/>
+    </bean>
+
+    <reference id="mimeTypeMapper" interface="ddf.mime.MimeTypeMapper"/>
+
+    <reference id="uuidGenerator" interface="org.codice.ddf.platform.util.uuidgenerator.UuidGenerator" filter="(id=uuidGenerator)"/>
+
+    <bean id="listApplication" class="org.codice.ddf.catalog.ui.metacard.ListApplication">
+        <argument ref="mimeTypeMapper"/>
+        <argument ref="catalogFramework"/>
+        <argument ref="uuidGenerator"/>
     </bean>
 
     <bean id="queryApplication" class="org.codice.ddf.catalog.ui.query.QueryApplication">
@@ -345,6 +365,8 @@
                 <ref component-id="configurationApplication"/>
                 <ref component-id="feedbackApplication"/>
                 <ref component-id="searchFormsApplication"/>
+                <ref component-id="listApplication"/>
+                <ref component-id="buildApplication"/>
             </list>
         </property>
         <property name="requestSupplier" ref="rootReqSupplier"/>

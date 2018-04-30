@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:ns2="http://www.google.com/kml/ext/2.2" xmlns:ns4="urn:oasis:names:tc:ciq:xsdschema:xAL:2.0" xmlns:ns3="http://www.w3.org/2005/Atom">
+    <Document id="f73129e5-7346-44de-a217-431b128825b4">
+        <name>KML Metacard Export</name>
+        <open>0</open>
+        <Style id="bluenormal">
+            <LabelStyle>
+                <scale>0.0</scale>
+            </LabelStyle>
+            <LineStyle>
+                <color>33ff0000</color>
+                <width>3.0</width>
+            </LineStyle>
+            <PolyStyle>
+                <color>33ff0000</color>
+                <fill>1</fill>
+            </PolyStyle>
+            <BalloonStyle>
+                <text>&lt;h3&gt;&lt;b&gt;$[name]&lt;/b&gt;&lt;/h3&gt;&lt;table&gt;&lt;tr&gt;&lt;td width="400"&gt;$[description]&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</text>
+            </BalloonStyle>
+        </Style>
+        <Style id="bluehighlight">
+            <LabelStyle>
+                <scale>1.0</scale>
+            </LabelStyle>
+            <LineStyle>
+                <color>99ff0000</color>
+                <width>6.0</width>
+            </LineStyle>
+            <PolyStyle>
+                <color>99ff0000</color>
+                <fill>1</fill>
+            </PolyStyle>
+            <BalloonStyle>
+                <text>&lt;h3&gt;&lt;b&gt;$[name]&lt;/b&gt;&lt;/h3&gt;&lt;table&gt;&lt;tr&gt;&lt;td width="400"&gt;$[description]&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</text>
+            </BalloonStyle>
+        </Style>
+        <StyleMap id="default">
+            <Pair>
+                <key>normal</key>
+                <styleUrl>#bluenormal</styleUrl>
+            </Pair>
+            <Pair>
+                <key>highlight</key>
+                <styleUrl>#bluehighlight</styleUrl>
+            </Pair>
+        </StyleMap>
+        <Placemark id="Placemark-UUID-3">
+            <name>Location 3</name>
+            <description>&lt;!DOCTYPE html&gt;
+            </description>
+            <TimeSpan>
+                <begin>2018-03-06T19:53:52</begin>
+            </TimeSpan>
+            <styleUrl>#default</styleUrl>
+            <Point>
+                <coordinates>-111.9281,33.4242</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="Placemark-UUID-4">
+            <name>Location 4</name>
+            <description>&lt;!DOCTYPE html&gt;
+            </description>
+            <TimeSpan>
+                <begin>2018-03-06T19:53:52</begin>
+            </TimeSpan>
+            <styleUrl>#default</styleUrl>
+            <Point>
+                <coordinates>-112.2626,33.5276</coordinates>
+            </Point>
+        </Placemark>
+    </Document>
+</kml>

@@ -24,16 +24,19 @@ module.exports = Marionette.LayoutView.extend({
     template: template,
     tagName: CustomElements.register('workspace-search'),
     regions: {
+        searchAdd: '> .search-add',
         searchResults: '> .search-results'
     },
     onBeforeShow: function () {
         if (store.getCurrentWorkspace()) {
+            this.setupSearchAdd();
             this.setupSearchResults();
         }
     },
+    setupSearchAdd: function () {
+       //this.searchAdd.show(new SearchesView());
+    },
     setupSearchResults: function(){
-        this.searchResults.show(new ResultsView({
-            selectionInterface: store
-        }));
+        this.searchResults.show(new ResultsView());
     }
 });

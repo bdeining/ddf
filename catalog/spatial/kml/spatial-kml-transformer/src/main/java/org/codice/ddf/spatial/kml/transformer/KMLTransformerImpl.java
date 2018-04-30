@@ -13,9 +13,13 @@
  */
 package org.codice.ddf.spatial.kml.transformer;
 
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
+import com.google.common.collect.ImmutableMap;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
@@ -23,6 +27,7 @@ import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import ddf.action.ActionProvider;
+import ddf.catalog.Constants;
 import ddf.catalog.data.BinaryContent;
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.Result;
@@ -51,12 +56,15 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.activation.MimeType;
 import javax.activation.MimeTypeParseException;
 import javax.security.auth.Subject;
@@ -72,12 +80,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 /**
- * The base Transformer for handling KML requests to take a {@link Metacard} or {@link
- * SourceResponse} and produce a KML representation. This service attempts to first locate a {@link
- * KMLEntryTransformer} for a given {@link Metacard} based on the metadata-content-type. If no
- * {@link KMLEntryTransformer} can be found, the default transformation is performed.
+ * The base Transformer for handling KML requests to take {@link Metacard}, {@link SourceResponse},
+ * or {@link List<Metacard>} and produce a KML representation. This service attempts to first locate
+ * a {@link KMLEntryTransformer} for a given {@link Metacard} based on the metadata-content-type. If
+ * no {@link KMLEntryTransformer} can be found, the default transformation is performed.
  *
  * @author Ashraf Barakat, Ian Barnett, Keith C Wire
  */
@@ -108,6 +117,9 @@ public class KMLTransformerImpl implements KMLTransformer {
   protected static final MimeType KML_MIMETYPE = new MimeType();
 
   private static List<StyleSelector> defaultStyle = new ArrayList<StyleSelector>();
+
+  static final String SKIP_UNTRANSFORMABLE_ITEMS_ARG = "skipUntransformableItems";
+  static final String DOC_NAME_ARG = "docName";
 
   static {
     try {
@@ -309,7 +321,7 @@ public class KMLTransformerImpl implements KMLTransformer {
     kmlPlacemark.setDescription(description);
 
     String styleUrl = styleMapper.getStyleForMetacard(entry);
-    if (StringUtils.isNotBlank(styleUrl)) {
+    if (isNotBlank(styleUrl)) {
       kmlPlacemark.setStyleUrl(styleUrl);
     }
 
@@ -332,7 +344,7 @@ public class KMLTransformerImpl implements KMLTransformer {
 
   private Geometry createKmlGeo(com.vividsolutions.jts.geom.Geometry geo)
       throws CatalogTransformerException {
-    Geometry kmlGeo = null;
+    Geometry kmlGeo;
     if (POINT_TYPE.equals(geo.getGeometryType())) {
       Point jtsPoint = (Point) geo;
       kmlGeo = KmlFactory.createPoint().addToCoordinates(jtsPoint.getX(), jtsPoint.getY());
@@ -421,28 +433,55 @@ public class KMLTransformerImpl implements KMLTransformer {
       LOGGER.debug("Null arguments, unable to complete transform");
       throw new CatalogTransformerException("Unable to complete transform without arguments");
     }
-    String docId = UUID.randomUUID().toString();
 
-    String restUriAbsolutePath = (String) arguments.get("url");
+    final List<Metacard> metacards =
+        upstreamResponse
+            .getResults()
+            .stream()
+            .map(Result::getMetacard)
+            .collect(Collectors.toList());
+
+    return getBinaryContent(metacards, arguments);
+  }
+
+  private BinaryContent getBinaryContent(
+      List<Metacard> metacards, Map<String, Serializable> arguments)
+      throws CatalogTransformerException {
+
+    if (CollectionUtils.isEmpty(metacards)) {
+      throw new CatalogTransformerException("Must provide at least one Metacard to transform.");
+    }
+
+    final boolean skipUntransformableItems =
+        (boolean) arguments.getOrDefault(SKIP_UNTRANSFORMABLE_ITEMS_ARG, false);
+    final String docNameArgument = (String) arguments.get(DOC_NAME_ARG);
+
+    final String docId = UUID.randomUUID().toString();
+
+    final String restUriAbsolutePath = (String) arguments.get("url");
     LOGGER.debug("rest string url arg: {}", restUriAbsolutePath);
 
     // Transform Metacards to KML
     Document kmlDoc = KmlFactory.createDocument();
     boolean needDefaultStyle = false;
-    for (Result result : upstreamResponse.getResults()) {
+    for (Metacard metacard : metacards) {
       try {
-        Placemark placemark = transformEntry(null, result.getMetacard(), arguments);
-        if (placemark.getStyleSelector().isEmpty()
-            && StringUtils.isEmpty(placemark.getStyleUrl())) {
+        Placemark placemark = transformEntry(null, metacard, arguments);
+        if (placemark.getStyleSelector().isEmpty() && isEmpty(placemark.getStyleUrl())) {
           placemark.setStyleUrl("#default");
           needDefaultStyle = true;
         }
         kmlDoc.getFeature().add(placemark);
       } catch (CatalogTransformerException e) {
-        LOGGER.debug(
-            "Error transforming current metacard ({}) to KML and will continue with remaining query responses.",
-            result.getMetacard().getId(),
-            e);
+        if (!skipUntransformableItems) {
+          throw e;
+        } else {
+          LOGGER.debug(
+              "Error transforming current metacard ({}) to KML and will continue with remaining "
+                  + "metacards.",
+              metacard.getId(),
+              e);
+        }
       }
     }
 
@@ -450,23 +489,24 @@ public class KMLTransformerImpl implements KMLTransformer {
       kmlDoc.getStyleSelector().addAll(defaultStyle);
     }
 
-    Kml kmlResult =
-        encloseKml(
-            kmlDoc,
-            docId,
-            KML_RESPONSE_QUEUE_PREFIX + kmlDoc.getFeature().size() + CLOSE_PARENTHESIS);
+    final String documentName =
+        isNotBlank(docNameArgument)
+            ? docNameArgument
+            : (KML_RESPONSE_QUEUE_PREFIX + kmlDoc.getFeature().size() + CLOSE_PARENTHESIS);
+
+    Kml kmlResult = encloseKml(kmlDoc, docId, documentName);
 
     String transformedKml = marshalKml(kmlResult);
 
     InputStream kmlInputStream =
         new ByteArrayInputStream(transformedKml.getBytes(StandardCharsets.UTF_8));
-    LOGGER.trace("EXITING: ResponseQueue transform");
+
     return new BinaryContentImpl(kmlInputStream, KML_MIMETYPE);
   }
 
   private String marshalKml(Kml kmlResult) {
 
-    String kmlResultString = null;
+    String kmlResultString;
     StringWriter writer = new StringWriter();
 
     try {
@@ -481,5 +521,34 @@ public class KMLTransformerImpl implements KMLTransformer {
     kmlResultString = writer.toString();
 
     return kmlResultString;
+  }
+
+  @Override
+  public List<BinaryContent> transform(
+      List<Metacard> metacards, Map<String, ? extends Serializable> arguments)
+      throws CatalogTransformerException {
+
+    Map<String, Serializable> copy = new HashMap<>(arguments);
+    copy.putIfAbsent("docName", "KML List Export");
+
+    return Collections.singletonList(getBinaryContent(metacards, copy));
+  }
+
+  @Override
+  public String getId() {
+    return "kml";
+  }
+
+  @Override
+  public Set<MimeType> getMimeTypes() {
+    return Collections.singleton(KML_MIMETYPE);
+  }
+
+  @Override
+  public Map<String, Object> getProperties() {
+    return new ImmutableMap.Builder<String, Object>()
+        .put(Constants.SERVICE_ID, getId())
+        .put("mime-type", getMimeTypes())
+        .build();
   }
 }
