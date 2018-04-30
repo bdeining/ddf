@@ -36,8 +36,7 @@ define([
     'component/lightbox/lightbox.view.instance',
     'component/metacard-order/metacard-order.view',
 ], function(wreqr, Marionette, Backbone, _, $, template,
-    CustomElements, store, router, user, sources,
-    MenuNavigationDecorator, Decorators, Query, wkx,
+    CustomElements, store, router, user, sources, Query, wkx,
     CQLUtils, QueryConfirmationView, LoadingView,
     PopoutView, ResultAddView, ExportActionsView, lightboxInstance, MetacardOrderingView) {
 
