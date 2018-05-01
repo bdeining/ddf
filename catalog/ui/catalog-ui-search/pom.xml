@@ -446,7 +446,8 @@
                             *
                         </Import-Package>
                         <Export-Package>
-                            org.codice.ddf.catalog.ui.scheduling.subscribers
+                            org.codice.ddf.catalog.ui.scheduling.subscribers,
+                            org.codice.ddf.catalog.ui.metacard
                         </Export-Package>
                     </instructions>
                 </configuration>
