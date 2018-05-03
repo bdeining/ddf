@@ -95,28 +95,28 @@ module.exports = Backbone.AssociatedModel.extend({
         })
     }],
     addCustomForms: function() {
-        if (!this.isDestroyed) {
-            $.each(cachedTemplates, function(index, value) {
-                if (this.checkIfOwnerOrSystem(value)) {
-                    var utcSeconds = value.created / 1000;
-                    var d = new Date(0);
-                    d.setUTCSeconds(utcSeconds);
-                    this.addSearchForm(new SearchForm({
-                        createdOn: Common.getHumanReadableDate(d),
-                        id: value.id,
-                        name: value.title,
-                        description: value.description,
-                        type: 'custom',
-                        filterTemplate: JSON.stringify(value.filterTemplate),
-                        accessIndividuals: value.accessIndividuals,
-                        accessGroups: value.accessGroups,
-                        createdBy: value.creator,
-                        owner: value.owner,
-                        querySettings: value.querySettings
-                    }));
-                }
-            }.bind(this));
-        }
+        templatePromise.then(() => {
+            if (!this.isDestroyed) {
+                $.each(systemTemplates, (index, value) => {
+                    if (this.checkIfOwnerOrSystem(value)) {
+                        var utcSeconds = value.created / 1000;
+                        var d = new Date(0);
+                        d.setUTCSeconds(utcSeconds);
+                        this.addSearchForm(new SearchForm({
+                            createdOn: Common.getHumanReadableDate(d),
+                            id: value.id,
+                            name: value.title,
+                            type: 'custom',
+                            filterTemplate: value.filterTemplate,
+                            accessIndividuals: value.accessIndividuals,
+                            accessGroups: value.accessGroups,
+                            createdBy: value.creator
+                        }));
+                    }
+                });
+                this.doneLoading();
+            }
+        });
     },
     getCollection: function() {
         return this.get('searchForms');
