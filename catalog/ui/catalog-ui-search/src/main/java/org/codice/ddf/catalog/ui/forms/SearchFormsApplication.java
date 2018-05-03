@@ -26,26 +26,18 @@ import com.google.common.collect.ImmutableMap;
 import ddf.catalog.CatalogFramework;
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.Result;
-import ddf.catalog.data.impl.AttributeImpl;
 import ddf.catalog.data.types.Core;
 import ddf.catalog.operation.DeleteResponse;
 import ddf.catalog.operation.impl.CreateRequestImpl;
 import ddf.catalog.operation.impl.DeleteRequestImpl;
-import ddf.catalog.operation.impl.UpdateRequestImpl;
-import ddf.catalog.source.IngestException;
-import ddf.catalog.source.SourceUnavailableException;
-import ddf.security.Subject;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Comparator;
-import java.util.Date;
+import ddf.security.SubjectUtils;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.subject.Subject;
 import org.boon.json.JsonFactory;
 import org.boon.json.JsonParserFactory;
 import org.boon.json.JsonSerializerFactory;
@@ -77,11 +69,7 @@ public class SearchFormsApplication implements SparkApplication {
 
   private final EndpointUtil util;
 
-  private final boolean readOnly;
-
-  private static final String RESP_MSG = "message";
-
-  private static final String SOMETHING_WENT_WRONG = "Something went wrong.";
+  private static final String RESP_MSG = "Message";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SearchFormsApplication.class);
 
@@ -185,6 +173,19 @@ public class SearchFormsApplication implements SparkApplication {
         APPLICATION_JSON,
         (req, res) -> {
           String id = req.params(":id");
+
+          Subject subject = SecurityUtils.getSubject();
+          String currentUser = SubjectUtils.getName(subject);
+
+          Map<String, Object> originalMetacardOwner =
+              JsonFactory.create().parser().parseMap(util.safeGetBody(req));
+
+          if (!originalMetacardOwner.get(Core.METACARD_OWNER).equals(currentUser)) {
+            res.status(500);
+            LOGGER.debug("Failed to Delete Form {}", id);
+            return ImmutableMap.of(RESP_MSG, "Failed to delete.");
+          }
+
           DeleteResponse deleteResponse = catalogFramework.delete(new DeleteRequestImpl(id));
           if (!deleteResponse.getProcessingErrors().isEmpty()) {
             res.status(500);

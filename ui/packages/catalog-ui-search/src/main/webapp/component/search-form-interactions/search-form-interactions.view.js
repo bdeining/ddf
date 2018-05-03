@@ -45,7 +45,6 @@ module.exports =  Marionette.ItemView.extend({
         onRender: function() {
             this.checkIfSubscribed();
             this.checkIfDefaultSearchForm();
-            this.checkIfResultForm();
             this.isSystemTemplate();
         },
         checkIfSubscribed: function() {
@@ -66,7 +65,7 @@ module.exports =  Marionette.ItemView.extend({
                         let loadingview = new LoadingView();
                             this.model.url = '/search/catalog/internal/forms/' + this.model.get('id');
                             this.model.destroy({
-                                data: JSON.stringify({'metacard.owner': this.model.get('createdBy')}),
+                                data: JSON.stringify({'metacard.owner': [this.model.get('createdBy')]}),
                                 contentType: 'application/json',
                                 wait: true,
                                 error: function(model, xhr, options){
@@ -147,30 +146,7 @@ module.exports =  Marionette.ItemView.extend({
         isSystemTemplate: function() {
             this.$el.toggleClass('is-system-template', this.model.get('createdBy') === 'System Template');
         },
-        handleEdit: function() {
-            if(this.model.get('type') === 'custom')
-            {
-                this.model.set({
-                    type: 'new-form',
-                    title: this.model.get('name'),
-                    filterTree: this.model.get('filterTemplate'),
-                    id: this.model.get('id'),
-                    accessGroups: this.model.get('accessGroups'),
-                    accessIndividuals: this.model.get('accessIndividuals')
-                });
-            }
-            else if(this.model.get('type') === 'result')
-            {
-                this.model.set({
-                    type: 'result',
-                    title: this.model.get('name'),
-                    formId: this.model.get('id'),
-                    accessGroups: this.model.get('accessGroups'),
-                    accessIndividuals: this.model.get('accessIndividuals'),
-                    descriptors: this.model.get('descriptors'),
-                    description: this.model.get('description')
-                });
-            }
+        handleClick: function() {
             this.$el.trigger('closeDropdown.' + CustomElements.getNamespace());
             this.model.trigger('change:type');
         },
