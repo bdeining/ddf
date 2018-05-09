@@ -61,6 +61,6 @@
         <!--<bundle>mvn:org.apache.ignite/ignite-rest-http/2.3.0</bundle>-->
         <bundle>mvn:org.apache.ignite/ignite-schedule/2.3.0</bundle>
         <bundle>mvn:org.apache.ignite/ignite-slf4j/2.3.0</bundle>
-        <bundle>mvn:ddf.platform.ignite/ignite-igniter/2.12.0_GSR-1.2.0</bundle>
+        <bundle>mvn:ddf.platform.ignite/ignite-igniter/${project.version}</bundle>
     </feature>
 </features>
