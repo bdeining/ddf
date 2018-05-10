@@ -125,7 +125,6 @@ define([
             },
             handleMetacard() {
                 this.builderProperties.show(PropertyCollectionView.generatePropertyCollectionView([this.model.get('metacard')]));
-                this.builderProperties.currentView.turnOnLimitedWidth();
                 this.builderProperties.currentView.$el.addClass("is-list");
 
             },
