@@ -36,6 +36,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javax.activation.MimeType;
 import javax.activation.MimeTypeParseException;
 import org.codice.ddf.catalog.transform.MultiMetacardTransformer;
@@ -129,6 +133,11 @@ public class CsvMetacardTransformer implements MultiMetacardTransformer {
     return writeMetacardsToCsv(metacards, sortedAttributeDescriptors, aliasMap);
   }
 
+  private static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+    Set<Object> seen = ConcurrentHashMap.newKeySet();
+    return t -> seen.add(keyExtractor.apply(t));
+  }
+
   // Get requested attributes only, sort based on given order.
   private Appendable transformRequestedAttributes(List<Metacard> metacards)
       throws CatalogTransformerException {
@@ -136,8 +145,14 @@ public class CsvMetacardTransformer implements MultiMetacardTransformer {
     Set<AttributeDescriptor> attributesToInclude =
         getOnlyRequestedAttributes(metacards, new HashSet<>(attributeList), excludedAttributes);
 
+    Set<AttributeDescriptor> uniqueAttributesToInclude =
+        attributesToInclude
+            .stream()
+            .filter(distinctByKey(AttributeDescriptor::getName))
+            .collect(Collectors.toSet());
+
     List<AttributeDescriptor> sortedAttributeDescriptors =
-        sortAttributes(attributesToInclude, attributeList);
+        sortAttributes(uniqueAttributesToInclude, attributeList);
 
     return writeMetacardsToCsv(metacards, sortedAttributeDescriptors, aliasMap);
   }
