@@ -218,6 +218,12 @@
             type="Integer"
             default="1000"/>
 
+        <AD id="webSocketsDisabled"
+            name="Disable Web Sockets"
+            description="Disables use of Web Sockets"
+            type="Boolean"
+            default="false"/>
+
         <AD id="resultPageSize"
             name="Result Page Size"
             description="Specifies the number of results allowed per page on the client-side."
