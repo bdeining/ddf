@@ -87,11 +87,11 @@
     </bean>
 
     <service interface="ddf.catalog.data.MetacardType">
-        <bean class="org.codice.ddf.catalog.ui.metacard.workspace.QueryMetacardTypeImpl"/>
+        <bean class="ddf.catalog.data.impl.QueryMetacardTypeImpl"/>
     </service>
 
     <service interface="ddf.catalog.data.MetacardType">
-        <bean class="org.codice.ddf.catalog.ui.metacard.workspace.ListMetacardTypeImpl"/>
+        <bean class="ddf.catalog.data.impl.ListMetacardTypeImpl"/>
     </service>
 
     <bean id="shareableMetacardPreIngestPlugin"
@@ -106,11 +106,6 @@
     <service interface="ddf.catalog.data.MetacardType">
         <bean class="org.codice.ddf.catalog.ui.metacard.workspace.DeliveryScheduleMetacardTypeImpl"/>
     </service>
-
-    <bean id="workspacePreIngestPlugin"
-          class="org.codice.ddf.catalog.ui.security.WorkspacePreIngestPlugin">
-        <argument ref="subjectIdentity"/>
-    </bean>
 
     <bean id="noteMetacardType" class="org.codice.ddf.catalog.ui.metacard.notes.NoteMetacardType"/>
 
