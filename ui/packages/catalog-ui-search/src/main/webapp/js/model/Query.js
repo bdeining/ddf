@@ -19,6 +19,7 @@ define([
         'js/model/QueryResponse',
         'js/model/ResultSort',
         'js/model/QuerySchedule',
+        'js/model/QueryDeliverySchedule',
         'component/singletons/sources-instance',
         'js/Common',
         'js/CacheSourceSelector',
@@ -28,7 +29,7 @@ define([
         'lodash/merge',
         'backbone-associations',
     ],
-    function (Backbone, _, properties, cql, QueryResponse, ResultSort, QuerySchedule, Sources, Common, CacheSourceSelector, announcement,
+    function (Backbone, _, properties, cql, QueryResponse, ResultSort, QuerySchedule, QueryDeliverySchedule, Sources, Common, CacheSourceSelector, announcement,
         CQLUtils, user, _merge) {
         "use strict";
         var Query = {};
@@ -71,6 +72,10 @@ define([
                 type: Backbone.Many,
                 key: 'schedules',
                 relatedModel: QuerySchedule
+            }, {
+                type: Backbone.Many,
+                key: 'deliveries',
+                relatedModel: QueryDeliverySchedule
             }],
             //in the search we are checking for whether or not the model
             //only contains 5 items to know if we can search or not
@@ -96,6 +101,7 @@ define([
                     isLocal: false,
                     isOutdated: false,
                     schedules: [],
+                    deliveries: [],
                     'detail-level': undefined
                 }, user.getQuerySettings().toJSON());
             },
@@ -120,6 +126,7 @@ define([
                 this.listenTo(user.get('user>preferences'), 'change:resultCount', this.handleChangeResultCount);
                 this.listenTo(this, 'change:cql', () => this.set('isOutdated', true));
                 this.listenTo(this.get('schedules'), 'change add remove update', this.handleSchedulesChange);
+                this.listenTo(this.get('deliveries'), 'chagne add remove update', this.handleSchedulesChange);
             },
             buildSearchData: function () {
                 var data = this.toJSON();

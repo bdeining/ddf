@@ -13,7 +13,8 @@
  */
 package org.codice.ddf.catalog.ui.scheduling.subscribers;
 
-import ddf.catalog.operation.QueryResponse;
+import ddf.catalog.data.Result;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -41,13 +42,10 @@ public interface QueryCourier {
    */
   String DISPLAY_NAME_KEY = "displayName";
 
-  /**
-   * @see QueryCourier#deliver(String, QueryResponse, String, String, Map, Consumer, Runnable,
-   *     Consumer)
-   */
+  /** @see QueryCourier#deliver(String, List, String, String, Map, Consumer, Runnable, Consumer) */
   default void deliver(
       String queryTitle,
-      QueryResponse queryResults,
+      List<Result> queryResults,
       String userID,
       String deliveryID,
       Map<String, Object> parameters) {
@@ -62,13 +60,10 @@ public interface QueryCourier {
         warning -> {});
   }
 
-  /**
-   * @see QueryCourier#deliver(String, QueryResponse, String, String, Map, Consumer, Runnable,
-   *     Consumer)
-   */
+  /** @see QueryCourier#deliver(String, List, String, String, Map, Consumer, Runnable, Consumer) */
   default void deliver(
       String queryTitle,
-      QueryResponse queryResults,
+      List<Result> queryResults,
       String userID,
       String deliveryID,
       Map<String, Object> parameters,
@@ -76,13 +71,10 @@ public interface QueryCourier {
     deliver(queryTitle, queryResults, userID, deliveryID, parameters, err, () -> {}, warning -> {});
   }
 
-  /**
-   * @see QueryCourier#deliver(String, QueryResponse, String, String, Map, Consumer, Runnable,
-   *     Consumer)
-   */
+  /** @see QueryCourier#deliver(String, List, String, String, Map, Consumer, Runnable, Consumer) */
   default void deliver(
       String queryTitle,
-      QueryResponse queryResults,
+      List<Result> queryResults,
       String userID,
       String deliveryID,
       Map<String, Object> parameters,
@@ -109,7 +101,7 @@ public interface QueryCourier {
    */
   void deliver(
       String queryTitle,
-      QueryResponse queryResults,
+      List<Result> queryResults,
       String userID,
       String deliveryID,
       Map<String, Object> parameters,
@@ -133,9 +125,9 @@ public interface QueryCourier {
    * @return a {@link java.util.Map Map} of <tt>String</tt>s to {@link QueryDeliveryDatumType}s
    *     describing all parameters required by this {@link QueryCourier} to successfully complete
    *     its deliveries. The map's keys indicates keys expected to be present in parameters passed
-   *     to {@link QueryCourier#deliver(String, QueryResponse, String, String, Map, Consumer,
-   *     Runnable, Consumer)} QueryCourier.deliver}; a particular key's value describes the type of
-   *     value expected to be associated with the related key in the same parameters.
+   *     to {@link QueryCourier#deliver(String, List, String, String, Map, Consumer, Runnable,
+   *     Consumer)} QueryCourier.deliver}; a particular key's value describes the type of value
+   *     expected to be associated with the related key in the same parameters.
    */
   Map<String, QueryDeliveryDatumType> getRequiredFields();
 }

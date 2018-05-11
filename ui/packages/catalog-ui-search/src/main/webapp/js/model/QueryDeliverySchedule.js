@@ -1,4 +1,3 @@
-{{!--
 /**
  * Copyright (c) Codice Foundation
  *
@@ -10,23 +9,20 @@
  * <http://www.gnu.org/licenses/lgpl.html>.
  *
  **/
- --}}
-<div class="editor-header is-header">
-</div>
-<div class="editor-properties">
-    <div class="enable-scheduling is-editing">
-    </div>
-    <div class="schedule-properties">
-        Repeats every
-        <div class="amount-picker">
-        </div>
-        <div class="unit-picker">
-        </div>
-        <div class="start-picker">
-        </div>
-        <div class="end-picker">
-        </div>
-    </div>
-</div>
-<div class="delivery-scheduling">
-</div>
+define([
+    'backbone',
+    'backbone-associations'
+], function (Backbone) {
+    return Backbone.Model.extend({
+        idAttribute: 'userId',
+        defaults: {
+            userId: '',
+            isScheduled: false,
+            scheduleInterval: 1,
+            scheduleUnit: 'days',
+            scheduleStart: '',
+            scheduleEnd: '',
+            deliveryIds: []
+        }
+    });
+});

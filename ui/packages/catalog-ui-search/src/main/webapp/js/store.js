@@ -90,6 +90,10 @@ define([
         getQueryById: function(queryId){
             return this.getCurrentQueries().get(queryId);
         },
+        getDeliveryById: function(queryId) {
+            const deliveries = this.getCurrentQuery() && this.getCurrentQuery().get('deliveries');
+            return deliveries && deliveries.get(queryId);
+        },
         getSelectedResults: function(){
             return this.get('content').get('selectedResults');
         },

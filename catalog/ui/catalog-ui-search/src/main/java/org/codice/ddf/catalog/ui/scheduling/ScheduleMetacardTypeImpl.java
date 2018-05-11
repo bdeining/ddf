@@ -37,8 +37,6 @@ public class ScheduleMetacardTypeImpl extends MetacardTypeImpl {
 
   public static final String SCHEDULE_END = "scheduleEnd";
 
-  public static final String SCHEDULE_DELIVERY_IDS = "deliveryIds";
-
   private static final Set<AttributeDescriptor> SCHEDULE_DESCRIPTORS;
 
   static {
@@ -96,15 +94,6 @@ public class ScheduleMetacardTypeImpl extends MetacardTypeImpl {
             true /* stored */,
             false /* tokenized */,
             false /* multivalued */,
-            BasicTypes.STRING_TYPE));
-
-    SCHEDULE_DESCRIPTORS.add(
-        new AttributeDescriptorImpl(
-            SCHEDULE_DELIVERY_IDS,
-            false /* indexed */,
-            true /* stored */,
-            false /* tokenized */,
-            true /* multivalued */,
             BasicTypes.STRING_TYPE));
   }
 

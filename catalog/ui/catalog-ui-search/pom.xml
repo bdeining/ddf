@@ -178,6 +178,11 @@
             <artifactId>action-core-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.locationtech.spatial4j</groupId>
             <artifactId>spatial4j</artifactId>
             <version>0.6</version>
@@ -367,6 +372,25 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-module-junit4-rule</artifactId>
+            <version>${powermock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-classloading-xstream</artifactId>
+            <version>${powermock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!--Spock dependencies-->
+        <dependency>
+            <groupId>ddf.lib</groupId>
+            <artifactId>spock-shaded</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>ddf.catalog.core</groupId>
             <artifactId>catalog-core-transform-api</artifactId>
             <version>${project.version}</version>
@@ -396,6 +420,7 @@
                         <Embed-Dependency>
                             antlr4-runtime,
                             boon,
+                            gson,
                             c3p0,
                             camel-core-osgi,
                             camel-http,

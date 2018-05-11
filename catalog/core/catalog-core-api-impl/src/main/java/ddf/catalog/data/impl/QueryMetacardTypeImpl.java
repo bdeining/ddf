@@ -44,6 +44,8 @@ public class QueryMetacardTypeImpl extends MetacardTypeImpl {
 
   public static final String DETAIL_LEVEL = "detail-level";
 
+  public static final String QUERY_DELIVERIES = "deliveries";
+
   private static final Set<AttributeDescriptor> QUERY_DESCRIPTORS;
 
   static {
@@ -128,6 +130,15 @@ public class QueryMetacardTypeImpl extends MetacardTypeImpl {
     QUERY_DESCRIPTORS.add(
         new AttributeDescriptorImpl(
             QUERY_SCHEDULES,
+            false /* indexed */,
+            true /* stored */,
+            false /* tokenized */,
+            true /* multivalued */,
+            BasicTypes.XML_TYPE));
+
+    QUERY_DESCRIPTORS.add(
+        new AttributeDescriptorImpl(
+            QUERY_DELIVERIES,
             false /* indexed */,
             true /* stored */,
             false /* tokenized */,

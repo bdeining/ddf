@@ -1,0 +1,38 @@
+@{customElementNamespace}query-delivery-schedule {
+    .customElement;
+  
+    overflow: hidden;
+  
+    .editor-properties {
+      padding: 0px @minimumSpacing @minimumSpacing @minimumSpacing;
+    }
+  
+    .delivery-schedule-properties {
+      display: none;
+    }
+  }
+  
+  @{customElementNamespace}query-delivery-schedule.is-scheduled {
+    .delivery-schedule-properties {
+      display: block;
+      margin-left: 20px;
+      padding-left: 20px;
+      padding-top: 20px;
+    }
+  
+    .interval-picker {
+      white-space: nowrap;
+      overflow: hidden;
+      width: ~'calc(10%)';
+      display: inline-block;
+      vertical-align: middle;
+    }
+  
+    .delivery-unit-picker {
+      white-space: nowrap;
+      overflow: hidden;
+      width: ~'calc(30%)';
+      display: inline-block;
+      vertical-align: middle;
+    }
+  }

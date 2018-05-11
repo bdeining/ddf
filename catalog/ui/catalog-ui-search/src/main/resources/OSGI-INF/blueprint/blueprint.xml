@@ -87,11 +87,11 @@
     </bean>
 
     <service interface="ddf.catalog.data.MetacardType">
-        <bean class="ddf.catalog.data.impl.QueryMetacardTypeImpl"/>
+        <bean class="org.codice.ddf.catalog.ui.metacard.workspace.QueryMetacardTypeImpl"/>
     </service>
 
     <service interface="ddf.catalog.data.MetacardType">
-        <bean class="ddf.catalog.data.impl.ListMetacardTypeImpl"/>
+        <bean class="org.codice.ddf.catalog.ui.metacard.workspace.ListMetacardTypeImpl"/>
     </service>
 
     <bean id="shareableMetacardPreIngestPlugin"
@@ -102,6 +102,15 @@
     <service interface="ddf.catalog.data.MetacardType">
         <bean class="org.codice.ddf.catalog.ui.scheduling.ScheduleMetacardTypeImpl"/>
     </service>
+
+    <service interface="ddf.catalog.data.MetacardType">
+        <bean class="org.codice.ddf.catalog.ui.metacard.workspace.DeliveryScheduleMetacardTypeImpl"/>
+    </service>
+
+    <bean id="workspacePreIngestPlugin"
+          class="org.codice.ddf.catalog.ui.security.WorkspacePreIngestPlugin">
+        <argument ref="subjectIdentity"/>
+    </bean>
 
     <bean id="noteMetacardType" class="org.codice.ddf.catalog.ui.metacard.notes.NoteMetacardType"/>
 
@@ -464,6 +473,10 @@
         <argument ref="catalogFramework"/>
         <argument ref="persistentStore"/>
         <argument ref="workspaceTransformer"/>
+        <argument>
+            <reference-list interface="org.codice.ddf.catalog.ui.scheduling.subscribers.QueryCourier"
+                            availability="optional"/>
+        </argument>
     </bean>
 
     <service ref="querySchedulingPostIngestPlugin" interface="ddf.catalog.plugin.PostIngestPlugin"/>

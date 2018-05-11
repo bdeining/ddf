@@ -151,19 +151,22 @@ define([
                     federation = 'local';
                 }
             }
-            var sorts = this.settingsSortField.currentView.collection.toJSON();
+            const sorts = this.settingsSortField.currentView.collection.toJSON();
             let detailLevel = this.resultForm.currentView && this.resultForm.currentView.model.get('value')[0]
             if (detailLevel && detailLevel === 'allFields') {
                 detailLevel = undefined;
             }
-            var scheduleModel = this.settingsSchedule.currentView.getSchedulingConfiguration();
+            const scheduleModel = this.settingsSchedule.currentView.getSchedulingConfiguration();
+            const deliveryModel = this.settingsSchedule.currentView.getDeliveryConfiguration();
             this.model.get('schedules').add(scheduleModel, {merge: true});
+            this.model.get('deliveries').add(deliveryModel, {merge: true});
             return {
                 src: src,
                 federation: federation,
                 sorts: sorts,
                 'detail-level': detailLevel,
-                schedules: this.model.get('schedules')
+                schedules: this.model.get('schedules'),
+                deliveries: this.model.get('deliveries')
             };
         },
         saveToModel: function () {

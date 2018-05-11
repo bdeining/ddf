@@ -21,8 +21,8 @@ import ddf.catalog.data.Attribute;
 import ddf.catalog.data.AttributeDescriptor;
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.Result;
-import ddf.catalog.operation.QueryResponse;
 import ddf.util.MapUtils;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -33,7 +33,6 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import org.codice.ddf.platform.email.SmtpClient;
-import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -80,7 +79,7 @@ public class EmailQueryCourier implements QueryCourier {
   @Override
   public void deliver(
       final String queryMetacardTitle,
-      final QueryResponse queryResults,
+      final List<Result> queryResults,
       String userID,
       String deliveryID,
       final Map<String, Object> parameters,
@@ -116,10 +115,8 @@ public class EmailQueryCourier implements QueryCourier {
 
               StringBuilder emailBody =
                   new StringBuilder(
-                      String.format(
-                          "Here are the results for query %s as of %s:",
-                          queryMetacardTitle, EMAIL_DATE_TIME_FORMATTER.print(DateTime.now())));
-              for (Result queryResult : queryResults.getResults()) {
+                      String.format("Here are the results for query %s:", queryMetacardTitle));
+              for (Result queryResult : queryResults) {
                 emailBody.append("\n\n");
 
                 final Metacard metacard = queryResult.getMetacard();

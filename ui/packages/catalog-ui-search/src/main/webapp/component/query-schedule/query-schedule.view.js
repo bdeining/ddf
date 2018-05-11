@@ -27,10 +27,12 @@ define([
     'component/dropdown/dropdown.view',
     'component/radio/radio.view',
     'component/singletons/user-instance',
+    'js/model/QueryDeliverySchedule',
+    'component/query-delivery-schedule/query-delivery-schedule.view',
     'moment',
     'js/Common'
 ], function(Marionette, Backbone, _, $, template, CustomElements, store, properties, PropertyView, Property,
-    DropdownView, RadioView, user, Moment, Common) {
+    DropdownView, RadioView, user, QueryDeliveryScheduleModel, QueryDeliveryScheduleView, Moment, Common) {
 
     function getHumanReadableDuration(milliseconds) {
         var duration = Moment.duration(milliseconds);
@@ -65,12 +67,12 @@ define([
         modelEvents: {},
         regions: {
             enableScheduling: '.enable-scheduling',
+            deliveryScheduling: '.delivery-scheduling',
             scheduleProperties: '.schedule-properties',
             amountPicker: '.amount-picker',
             unitPicker: '.unit-picker',
             startPicker: '.start-picker',
-            endPicker: '.end-picker',
-            deliveryPicker: '.delivery-methods-picker'
+            endPicker: '.end-picker'
         },
         ui: {},
         initialize: function(){
@@ -93,12 +95,11 @@ define([
             }));
             this.propertyInterval.currentView.turnOffEditing();
         },
-
         setupRegions: function() {
             this.enableScheduling.show(new PropertyView({
                 model: new Property({
                     value: [this.model.get('isScheduled')],
-                    id: 'Schedule',
+                    id: 'Query Schedule',
                     radio: [{
                         label: 'On',
                         value: true,
@@ -112,6 +113,9 @@ define([
             }));
             this.enableScheduling.currentView.turnOnLimitedWidth();
             this.handleSchedulingValue();
+
+            const userId = user.get('user').get('userid');
+            this.deliveryScheduling.show(new QueryDeliveryScheduleView({model: new QueryDeliveryScheduleModel({userId: userId})}));
 
             this.amountPicker.show(new PropertyView({
                 model: new Property({
@@ -169,31 +173,6 @@ define([
                 })
             }));
             this.endPicker.currentView.turnOnLimitedWidth();
-
-            //let currentDeliveryValues = this.model.get('deliveryIds').map(deliveryId => ({ label: deliveryId, value: deliveryId, class: '' }));
-            // let possibleEnumValues = ['myFTP', 'myEmail', 'myPhysicalMailingService'].map(val => ({label: val, value: val, class: ''})); 
-            // let possibleEnumValues = {};
-            let possibleEnumValues = user.get('user').getPreferences().get('deliveryMethods').map(val => ({label: val.get('name'), value: val.get('deliveryId'), class: ''}));
-            
-            // let possibleEnumValues = ['myFTP', 'myEmail', 'myPhysicalMailingService'].map(val => ({label: val, value: val, class: ''}));
-            this.deliveryPicker.show(new PropertyView({
-                model: new Property({
-                    enumFiltering: false,
-                    showValidationIssues: false,
-                    enumMulti: true,
-                    enum: possibleEnumValues,
-                    value: [this.model.get('deliveryIds')],
-                    id: 'Delivery Method'
-                })
-            }));
-            this.deliveryPicker.currentView.turnOnLimitedWidth();
-
-            // var deliveryMethods = [{ label: 'All Available Methods', value: 'all-methods' }].concat([{ label: 'Email', value: 'joshua.mack@connexta.com'}]);
-            // this.deliveryPicker.show(DropdownView.createSimpleDropdown({
-            //     list: mappedMethods,
-            //     defaultSelection: [mappedMethods[0]] || ['No Delivery Options Available'],
-            //     isMultiSelect: true
-            // }));
         },
         handleSchedulingValue: function() {
             var isScheduling = this.enableScheduling.currentView.model.getValue()[0];
@@ -227,8 +206,7 @@ define([
                 scheduleAmount: this.amountPicker.currentView.model.getValue()[0],
                 scheduleUnit: this.unitPicker.currentView.model.getValue()[0],
                 scheduleStart: this.startPicker.currentView.model.getValue()[0],
-                scheduleEnd: this.endPicker.currentView.model.getValue()[0],
-                deliveryIds: this.deliveryPicker.currentView.model.getValue()[0]
+                scheduleEnd: this.endPicker.currentView.model.getValue()[0]
             });
             return this.model;
 
@@ -240,6 +218,9 @@ define([
             //     scheduleEnd: this.endPicker.currentView.model.getValue()[0],
             //     scheduleSubscribers: scheduleSubscribers
             // };
+        },
+        getDeliveryConfiguration: function() {
+            return this.deliveryScheduling.currentView.getDataModel();
         }
     });
 });
