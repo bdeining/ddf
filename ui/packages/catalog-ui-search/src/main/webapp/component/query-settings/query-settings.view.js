@@ -69,10 +69,11 @@ define([
             let lastIndex = resultTemplates.length - 1;
             if (resultTemplates) {
                 let detailLevelProperty = new Property({
-                    label: 'Detail Level',
+                    label: 'Result Form',
                     enum: ResultForm.getResultTemplatesProperties(),
                     value: [this.model.get('detail-level') || (resultTemplates && resultTemplates[lastIndex] && resultTemplates[lastIndex].value)],
-                    id: 'Detail Level'
+                    showValidationIssues: false,
+                    id: 'Result Form'
                 });
                 this.listenTo(detailLevelProperty, 'change:value', this.handleChangeDetailLevel);
                 this.resultForm.show(new PropertyView({

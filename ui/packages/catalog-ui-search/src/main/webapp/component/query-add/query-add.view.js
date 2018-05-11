@@ -106,7 +106,7 @@ module.exports = Marionette.LayoutView.extend({
     },
     showResult: function () {
         this.$el.trigger('closeDropdown.'+CustomElements.getNamespace());
-        lightboxInstance.model.updateTitle(this.model.get('title'));
+        lightboxInstance.model.updateTitle(this.model.get('resultTitle'));
         lightboxInstance.model.open();
         lightboxInstance.$el.addClass('is-result-form');
         lightboxInstance.lightboxContent.show(new QueryResult({

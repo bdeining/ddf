@@ -14,24 +14,36 @@
  **/
  /* global require */
  const Marionette = require('marionette')
+ const $ = require('jquery')
  const template = require('component/search-form/search-form.collection.hbs')
  const ResultFormCollectionView = require('./result-form.collection.view')
  const ResultFormCollection = require('./result-form.collection')
  const CustomElements = require('js/CustomElements')
+ const LoadingView = require('component/loading/loading.view')
 
  module.exports = Marionette.LayoutView.extend({
    template: template,
    tagName: CustomElements.register('result-form-collection'),
    regions: {
-     collectionView: '.collection'
+     collectionView: '.collection',
+     loadingView: '.loading'
    },
+   initialize: function() {
+    this.resultFormCollection = new ResultFormCollection()
+    this.listenTo(this.resultFormCollection, 'change:doneLoading', this.handleLoadingSpinner);
+  },
    onRender: function () {
-     let resultFormCollection = new ResultFormCollection()
      this.collectionView.show(new ResultFormCollectionView({
-       collection: resultFormCollection.getCollection(),
-       collectionWrapperModel: resultFormCollection,
+       collection: this.resultFormCollection.getCollection(),
+       collectionWrapperModel: this.resultFormCollection,
        queryModel: this.model
      }))
-     this.$el.find('.loading').hide()
-   }
+     this.loadingView.show(new LoadingView({ DOMHook: this.$el }))
+     this.handleLoadingSpinner();
+   },
+   handleLoadingSpinner: function() {
+    if(this.resultFormCollection.getDoneLoading()) {
+        this.loadingView.currentView.remove();
+    }
+}
  })

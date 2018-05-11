@@ -12,7 +12,7 @@
  * <http://www.gnu.org/licenses/lgpl.html>.
  *
  **/
- /*global define,window*/
+/*global define,window*/
 
  define([
      'jquery',
@@ -34,28 +34,33 @@
       initialize: function () {
           resultTemplatePromise.then(() => {
               if (!this.isDestroyed) {
-                  const customResultTemplates = _.map(resultTemplates, function(resultForm) {
-                      return {
-                        label: resultForm.title,
-                        value: resultForm.id,
-                        id: resultForm.id,
-                        descriptors: resultForm.descriptors,
-                        description: resultForm.description,
-                        created: resultForm.created,
-                        creator: resultForm.creator
-                      };
-                  });
-
-                  customResultTemplates.push({
-                    label: 'All Fields',
-                    value: 'allFields',
-                    id: 'allFields',
-                    descriptors: [],
-                    description: 'All Fields'
-                  });
+                  const customResultTemplates = this.getArrayMap(resultTemplates);
                   resultTemplateProperties = customResultTemplates;
               }
           });
+      },
+      getArrayMap: function (resultList){
+        let resultFormTemplates = _.map(resultList, function(resultForm) {
+            return {
+              label: resultForm.title,
+              value: resultForm.id,
+              id: resultForm.id,
+              descriptors: resultForm.descriptors,
+              description: resultForm.description,
+              created: resultForm.created,
+              creator: resultForm.creator,
+              accessGroups: resultForm.accessGroups,
+              accessIndividuals: resultForm.accessIndividuals
+            };
+        });
+        resultFormTemplates.push({
+            label: 'All Fields',
+            value: 'allFields',
+            id: 'allFields',
+            descriptors: [],
+            description: 'All Fields'
+          });
+        return resultFormTemplates;
       },
       getResultTemplatesProperties: function() {
           return resultTemplateProperties;
@@ -63,6 +68,9 @@
       deleteResultTemplateById: function(id) {
         resultTemplateProperties = _.filter(resultTemplateProperties, function(template) {
             return template.id !== id
-     })}
+     })},
+     updatesResultTemplates: function(newForms){
+        resultTemplateProperties = this.getArrayMap(newForms);
+     }
     }));
-});
+})
