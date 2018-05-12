@@ -45,6 +45,7 @@ module.exports =  Marionette.ItemView.extend({
         onRender: function() {
             this.checkIfSubscribed();
             this.checkIfDefaultSearchForm();
+            this.checkIfResultForm();
             this.isSystemTemplate();
         },
         checkIfSubscribed: function() {
@@ -93,6 +94,9 @@ module.exports =  Marionette.ItemView.extend({
                 throw new Error('Unable to delete the form: You are not the author ');                
             }
             this.trigger("doneLoading");
+        },
+        checkIfResultForm() {
+            this.$el.toggleClass('is-result-form-template', this.model.get('type') === 'result');
         },
         handleMakeDefault: function() {
             user.getQuerySettings().set({
