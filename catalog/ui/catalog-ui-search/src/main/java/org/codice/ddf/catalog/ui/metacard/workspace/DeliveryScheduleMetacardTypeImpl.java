@@ -27,15 +27,11 @@ public class DeliveryScheduleMetacardTypeImpl extends MetacardTypeImpl {
 
   public static final String DELIVERY_SCHEDULE_USER_ID = "userId";
 
-  public static final String IS_SCHEDULED = "isScheduled";
+  public static final String DELIVERY_SCHEDULED = "deliveryScheduled";
 
-  public static final String DELIVERY_SCHEDULE_INTERVAL = "scheduleInterval";
+  public static final String DELIVERY_SCHEDULE_HOURS = "hours";
 
-  public static final String DELIVERY_SCHEDULE_UNIT = "scheduleUnit";
-
-  public static final String DELIVERY_SCHEDULE_START = "scheduleStart";
-
-  public static final String DELIVERY_SCHEDULE_END = "scheduleEnd";
+  public static final String DELIVERY_SCHEDULE_MINUTES = "minutes";
 
   public static final String SCHEDULE_DELIVERY_IDS = "deliveryIds";
 
@@ -50,23 +46,15 @@ public class DeliveryScheduleMetacardTypeImpl extends MetacardTypeImpl {
 
     DELIVERY_DESCRIPTORS.add(
         new AttributeDescriptorImpl(
-            IS_SCHEDULED, false, true, false, false, BasicTypes.BOOLEAN_TYPE));
+            DELIVERY_SCHEDULED, false, true, false, false, BasicTypes.BOOLEAN_TYPE));
 
     DELIVERY_DESCRIPTORS.add(
         new AttributeDescriptorImpl(
-            DELIVERY_SCHEDULE_INTERVAL, false, true, false, false, BasicTypes.INTEGER_TYPE));
+            DELIVERY_SCHEDULE_HOURS, false, true, false, false, BasicTypes.INTEGER_TYPE));
 
     DELIVERY_DESCRIPTORS.add(
         new AttributeDescriptorImpl(
-            DELIVERY_SCHEDULE_UNIT, false, true, false, false, BasicTypes.STRING_TYPE));
-
-    DELIVERY_DESCRIPTORS.add(
-        new AttributeDescriptorImpl(
-            DELIVERY_SCHEDULE_START, false, true, false, false, BasicTypes.STRING_TYPE));
-
-    DELIVERY_DESCRIPTORS.add(
-        new AttributeDescriptorImpl(
-            DELIVERY_SCHEDULE_END, false, true, false, false, BasicTypes.STRING_TYPE));
+            DELIVERY_SCHEDULE_MINUTES, false, true, false, false, BasicTypes.INTEGER_TYPE));
 
     DELIVERY_DESCRIPTORS.add(
         new AttributeDescriptorImpl(

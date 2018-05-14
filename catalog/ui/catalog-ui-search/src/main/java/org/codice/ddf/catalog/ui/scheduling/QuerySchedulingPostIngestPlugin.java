@@ -31,7 +31,9 @@ import ddf.util.Fallible;
 import ddf.util.MapUtils;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -119,6 +121,16 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
     SchedulableFuture apply(DateTime start, DateTime end, Integer interval, IgniteCache cache);
   }
 
+  @FunctionalInterface
+  interface PartialDelivery {
+    SchedulableFuture apply(
+        Boolean delayed,
+        Integer hours,
+        Integer minutes,
+        Map<String, Object> scheduleData,
+        IgniteCache cache);
+  }
+
   public static final String DELIVERY_METHODS_KEY = "deliveryMethods";
 
   public static final String DELIVERY_METHOD_ID_KEY = "deliveryId";
@@ -199,6 +211,51 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
     return getIgnite().map(Ignite::scheduler);
   }
 
+  private Fallible<?> checkAndScheduleDelivery(
+      final IgniteScheduler scheduler,
+      final Supplier<Fallible<IgniteCache<String, Set<String>>>> runningCache,
+      final String queryMetacardId,
+      final boolean delayed,
+      final int hours,
+      final int minutes,
+      Map<String, Object> scheduleData,
+      final PartialDelivery partialDelivery) {
+    DateTime now = DateTime.now();
+    DateTime scheduled = now.withHourOfDay(hours).withMinuteOfHour(minutes);
+    if (scheduled.compareTo(now) < 0) {
+      scheduled = scheduled.plusDays(1);
+    }
+
+    Fallible<IgniteCache<String, Map<String, String>>> queryResultCache =
+        this.getIgniteCache(QUERY_RESULTS_CACHE_NAME, true);
+
+    if (queryResultCache.hasError())
+      return queryResultCache.prependToError(
+          "Unable to retrieve \"%s\" cache from ignite", QUERIES_CACHE_NAME);
+
+    RepetitionTimeUnit unit = RepetitionTimeUnit.DAYS;
+    if (!delayed) {
+      String repUnit = (String) scheduleData.get(ScheduleMetacardTypeImpl.SCHEDULE_UNIT);
+      unit = RepetitionTimeUnit.valueOf(repUnit.toUpperCase());
+    }
+    return scheduleJob(
+        scheduler,
+        partialDelivery.apply(
+            delayed,
+            hours,
+            minutes,
+            scheduleData,
+            queryResultCache.or(
+                /* Should never occur, but we need the value here not Fallible */ null)),
+        runningCache,
+        unit,
+        scheduled,
+        delayed,
+        hours,
+        minutes,
+        queryMetacardId);
+  }
+
   private Fallible<?> checkAndScheduleJob(
       final IgniteScheduler scheduler,
       final Supplier<Fallible<IgniteCache<String, Set<String>>>> runningCache,
@@ -213,22 +270,18 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
       return error("A task cannot be executed every %d %s!", scheduleInterval, scheduleUnit);
     }
 
-    final DateTime end;
+    DateTime end;
     try {
       end = DateTime.parse(scheduleEndString, ISO_8601_DATE_FORMAT);
-    } catch (DateTimeParseException exception) {
-      return error(
-          "The end date attribute of this metacard, \"%s\", could not be parsed: %s",
-          scheduleStartString, exception.getMessage());
+    } catch (DateTimeParseException | IllegalArgumentException exception) {
+      end = DateTime.now().plusYears(1);
     }
 
-    final DateTime start;
+    DateTime start;
     try {
       start = DateTime.parse(scheduleStartString, ISO_8601_DATE_FORMAT);
-    } catch (DateTimeParseException exception) {
-      return error(
-          "The start date attribute of this metacard, \"%s\", could not be parsed: %s",
-          scheduleStartString, exception.getMessage());
+    } catch (DateTimeParseException | IllegalArgumentException exception) {
+      start = DateTime.now();
     }
 
     final RepetitionTimeUnit unit;
@@ -268,10 +321,27 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
       final RepetitionTimeUnit unit,
       final DateTime start,
       final String metacardId) {
+    return scheduleJob(scheduler, executor, runningCache, unit, start, false, 0, 0, metacardId);
+  }
+
+  private Fallible scheduleJob(
+      final IgniteScheduler scheduler,
+      final SchedulableFuture executor,
+      final Supplier<Fallible<IgniteCache<String, Set<String>>>> runningCache,
+      final RepetitionTimeUnit unit,
+      final DateTime start,
+      final boolean delayed,
+      final int hours,
+      final int minutes,
+      final String metacardId) {
     final SchedulerFuture job;
     synchronized (this) {
       try {
-        job = scheduler.scheduleLocal(executor, unit.makeCronToRunEachUnit(start));
+        if (delayed) {
+          job = scheduler.scheduleLocal(executor, minutes + " " + hours + " * * *");
+        } else {
+          job = scheduler.scheduleLocal(executor, unit.makeCronToRunEachUnit(start));
+        }
       } catch (Exception exception) {
         return error(
             "A problem occurred attempting to schedule a job for metacard \"%s\": %s",
@@ -354,60 +424,51 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
             });
   }
 
-  private Fallible<?> readScheduleDataAndScheduleDelivery(
+  private void readScheduleDataAndScheduleDelivery(
       final IgniteScheduler scheduler,
       final String queryMetacardId,
       final String queryMetacardTitle,
+      final Map<String, Object> deliveryData,
       final Map<String, Object> scheduleData) {
-    return MapUtils.tryGet(
-            scheduleData, DeliveryScheduleMetacardTypeImpl.IS_SCHEDULED, Boolean.class)
-        .tryMap(
-            isScheduled -> {
-              if (!isScheduled) {
-                return success().mapValue(null);
-              }
 
-              return MapUtils.tryGetAndRun(
-                  scheduleData,
-                  DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_USER_ID,
-                  String.class,
-                  DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_INTERVAL,
-                  Integer.class,
-                  DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_UNIT,
-                  String.class,
-                  DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_START,
-                  String.class,
-                  DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_END,
-                  String.class,
-                  DeliveryScheduleMetacardTypeImpl.SCHEDULE_DELIVERY_IDS,
-                  List.class,
-                  (scheduleUserId,
-                      scheduleInterval,
-                      scheduleUnit,
-                      scheduleStart,
-                      scheduleEnd,
-                      scheduleDeliveries) ->
-                      checkAndScheduleJob(
-                          scheduler,
-                          () -> getDeliveryScheduleCache(true),
-                          queryMetacardId,
-                          scheduleInterval,
-                          scheduleStart,
-                          scheduleEnd,
-                          scheduleUnit,
-                          (start, end, interval, cache) ->
-                              new DeliveryExecutor(
-                                  persistentStore,
-                                  Fallible.of(queryCourierServiceReferences),
-                                  cache,
-                                  queryMetacardId,
-                                  queryMetacardTitle,
-                                  scheduleDeliveries,
-                                  scheduleUserId,
-                                  interval,
-                                  start,
-                                  end)));
-            });
+    Fallible<List<QueryCourier>> serviceReferences = Fallible.of(queryCourierServiceReferences);
+
+    Collection<String> deliveryIds =
+        (Collection<String>)
+            deliveryData.get(DeliveryScheduleMetacardTypeImpl.SCHEDULE_DELIVERY_IDS);
+    String userId =
+        (String) deliveryData.get(DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_USER_ID);
+    Boolean delayedScheduled =
+        (Boolean) deliveryData.get(DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULED);
+    Integer hours =
+        (Integer) deliveryData.get(DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_HOURS);
+    Integer minutes =
+        (Integer) deliveryData.get(DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_MINUTES);
+
+    PartialDelivery partialDelivery =
+        (delayed, hrs, mins, queryScheduleProps, cache) ->
+            new DeliveryExecutor(
+                persistentStore,
+                serviceReferences,
+                cache,
+                queryMetacardId,
+                queryMetacardTitle,
+                deliveryIds,
+                userId,
+                delayed,
+                hrs,
+                mins,
+                queryScheduleProps);
+
+    checkAndScheduleDelivery(
+        scheduler,
+        () -> getDeliveryScheduleCache(true),
+        queryMetacardId,
+        delayedScheduled,
+        hours,
+        minutes,
+        scheduleData,
+        partialDelivery);
   }
 
   private Fallible<?> readQueryMetacardAndSchedule(final Map<String, Object> queryMetacardData) {
@@ -425,28 +486,25 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
                     QueryMetacardTypeImpl.QUERY_DELIVERIES,
                     List.class,
                     (queryMetacardID, queryMetacardTitle, schedulesData, deliveriesData) -> {
-                      Fallible schedules =
-                          forEach(
-                              (List<Map<String, Object>>) schedulesData,
-                              scheduleData ->
-                                  readScheduleDataAndScheduleQuery(
-                                      scheduler,
-                                      queryMetacardTitle,
-                                      queryMetacardID,
-                                      queryMetacardData,
-                                      scheduleData));
-
-                      Fallible deliveries =
-                          forEach(
-                              (List<Map<String, Object>>) deliveriesData,
-                              deliveryData ->
-                                  readScheduleDataAndScheduleDelivery(
-                                      scheduler,
-                                      queryMetacardID,
-                                      queryMetacardTitle,
-                                      deliveryData));
-
-                      return of(Arrays.asList(schedules, deliveries));
+                      Iterator<Map<String, Object>> schItr = schedulesData.listIterator();
+                      Iterator<Map<String, Object>> delItr = deliveriesData.listIterator();
+                      while (schItr.hasNext() && delItr.hasNext()) {
+                        Map<String, Object> scheduleData = schItr.next();
+                        Map<String, Object> deliveryData = delItr.next();
+                        readScheduleDataAndScheduleQuery(
+                            scheduler,
+                            queryMetacardTitle,
+                            queryMetacardID,
+                            queryMetacardData,
+                            scheduleData);
+                        readScheduleDataAndScheduleDelivery(
+                            scheduler,
+                            queryMetacardID,
+                            queryMetacardTitle,
+                            deliveryData,
+                            scheduleData);
+                      }
+                      return of(Arrays.asList());
                     }));
   }
 

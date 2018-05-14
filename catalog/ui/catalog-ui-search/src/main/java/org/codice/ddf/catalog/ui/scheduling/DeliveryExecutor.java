@@ -30,6 +30,7 @@ import ddf.util.Fallible;
 import ddf.util.MapUtils;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -50,6 +51,8 @@ import org.codice.ddf.catalog.ui.scheduling.subscribers.QueryCourier;
 import org.codice.ddf.persistence.PersistenceException;
 import org.codice.ddf.persistence.PersistentStore;
 import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,14 +65,22 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
   private final String metacardTitle;
   private final Collection<String> scheduleDeliveryIDs;
   private final String scheduleUserID;
+  private final Map<String, Object> scheduleData;
 
-  private final DateTime start;
-  private final DateTime end;
-  private final int scheduleInterval;
+  private final boolean delayed;
+  private final int hours;
+  private final int minutes;
 
   private final PersistentStore persistentStore;
   private final Fallible<List<QueryCourier>> serviceReferences;
   private final IgniteCache<String, Map<String, String>> queryCache;
+
+  private static final DateTimeFormatter ISO_8601_DATE_FORMAT =
+      DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ").withZoneUTC();
+
+  private final Integer queryScheduledAmount;
+  private DateTime queryStartTime;
+  private DateTime queryEndTime;
 
   private final AtomicInteger unitsPassedSinceStarted;
 
@@ -83,9 +94,10 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
       String deliveryMetacardTitle,
       Collection<String> scheduleDeliveryIDs,
       String scheduleUserID,
-      int scheduleInterval,
-      DateTime start,
-      DateTime end) {
+      boolean delayed,
+      int hours,
+      int minutes,
+      Map<String, Object> scheduleData) {
     this.persistentStore = persistentStore;
     this.serviceReferences = serviceReferences;
     this.queryCache = queryCache;
@@ -93,11 +105,27 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
     this.metacardTitle = deliveryMetacardTitle;
     this.scheduleDeliveryIDs = scheduleDeliveryIDs;
     this.scheduleUserID = scheduleUserID;
-    this.scheduleInterval = scheduleInterval;
-    this.start = start;
-    this.end = end;
+    this.hours = hours;
+    this.minutes = minutes;
+    this.delayed = delayed;
+    this.scheduleData = scheduleData;
 
-    this.unitsPassedSinceStarted = new AtomicInteger(0);
+    queryScheduledAmount = (Integer) scheduleData.get(ScheduleMetacardTypeImpl.SCHEDULE_AMOUNT);
+    String startString = (String) scheduleData.get(ScheduleMetacardTypeImpl.SCHEDULE_START);
+    String endString = (String) scheduleData.get(ScheduleMetacardTypeImpl.SCHEDULE_END);
+
+    try {
+      queryStartTime = DateTime.parse(startString, ISO_8601_DATE_FORMAT);
+    } catch (DateTimeParseException | IllegalArgumentException exception) {
+      queryStartTime = new DateTime();
+    }
+    try {
+      queryEndTime = DateTime.parse(endString, ISO_8601_DATE_FORMAT);
+    } catch (DateTimeParseException | IllegalArgumentException exception) {
+      queryEndTime = new DateTime().plusYears(1);
+    }
+
+    unitsPassedSinceStarted = new AtomicInteger(queryScheduledAmount);
 
     this.gson =
         new GsonBuilder()
@@ -193,6 +221,7 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
       final String userID,
       final String deliveryID,
       final Map<String, Object> deliveryParameters) {
+    LOGGER.trace("Delivering records for {} to {}", queryMetacardTitle, deliveryType);
     if (payload.hasError())
       return payload.prependToError("Delivery payload contains errors, will not be delivered: ");
 
@@ -364,24 +393,30 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
                   });
 
       final DateTime now = DateTime.now();
-
-      if (job != null && (isCanceled || end.compareTo(now) < 0)) {
+      if (job != null && (isCanceled || queryEndTime.compareTo(now) < 0)) {
         cancel();
         return;
       }
 
-      if (start.compareTo(now) > 0) {
+      if (queryStartTime.compareTo(now) > 0) {
         return;
       }
 
-      synchronized (unitsPassedSinceStarted) {
-        if (unitsPassedSinceStarted.get() < scheduleInterval - 1) {
-          unitsPassedSinceStarted.incrementAndGet();
-          return;
+      if (!this.delayed) {
+        synchronized (unitsPassedSinceStarted) {
+          if (unitsPassedSinceStarted.get() < queryScheduledAmount - 1) {
+            unitsPassedSinceStarted.incrementAndGet();
+            return;
+          }
         }
+
+        unitsPassedSinceStarted.set(0);
       }
 
-      unitsPassedSinceStarted.set(0);
+      if (job != null && isCanceled) {
+        cancel();
+        return;
+      }
 
       LOGGER.debug(
           "Running delivery for metacard with id: {} and title {}...", metacardId, metacardTitle);

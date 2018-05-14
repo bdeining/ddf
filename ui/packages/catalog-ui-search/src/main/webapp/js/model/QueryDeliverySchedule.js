@@ -17,11 +17,9 @@ define([
         idAttribute: 'userId',
         defaults: {
             userId: '',
-            isScheduled: false,
-            scheduleInterval: 1,
-            scheduleUnit: 'days',
-            scheduleStart: '',
-            scheduleEnd: '',
+            deliveryScheduled: false,
+            hours: '00',
+            minutes: '00',
             deliveryIds: []
         }
     });
