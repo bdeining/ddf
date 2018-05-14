@@ -16,28 +16,19 @@
 
  define([
      'jquery',
-     'backbone'
- ], function ($, Backbone) {
+     'backbone',
+     'underscore'
+ ], function ($, Backbone, _) {
 
   let resultTemplates = [];
   let resultTemplateProperties = [];
-  let resultTemplatePromise = $.ajax({
-     type: 'GET',
-     url: '/search/catalog/internal/forms/result',
-     contentType: 'application/json',
-     success: function (data) {
-         resultTemplates = data;
-     }
-  });
 
   return new (Backbone.Model.extend({
       initialize: function () {
-          resultTemplatePromise.then(() => {
-              if (!this.isDestroyed) {
-                  const customResultTemplates = this.getArrayMap(resultTemplates);
-                  resultTemplateProperties = customResultTemplates;
-              }
-          });
+        if (!this.isDestroyed) {
+            const customResultTemplates = this.getArrayMap(resultTemplates);
+            resultTemplateProperties = customResultTemplates;
+        }
       },
       getArrayMap: function (resultList){
         let resultFormTemplates = _.map(resultList, function(resultForm) {

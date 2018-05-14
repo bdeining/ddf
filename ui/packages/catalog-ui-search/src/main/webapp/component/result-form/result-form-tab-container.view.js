@@ -29,7 +29,7 @@
      loadingView: '.loading'
    },
    initialize: function() {
-    this.resultFormCollection = new ResultFormCollection()
+    this.resultFormCollection = new ResultFormCollection();
     this.listenTo(this.resultFormCollection, 'change:doneLoading', this.handleLoadingSpinner);
   },
    onRender: function () {
@@ -45,5 +45,5 @@
     if(this.resultFormCollection.getDoneLoading()) {
         this.loadingView.currentView.remove();
     }
-}
+  }
  })
