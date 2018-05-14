@@ -22,6 +22,37 @@
   let resultFormCollection = new ResultFormCollection();
   return new (Backbone.Model.extend({
       initialize: function () {
+        if (!this.isDestroyed) {
+            const customResultTemplates = this.getArrayMap(resultTemplates);
+            resultTemplateProperties = customResultTemplates;
+        }
+      },
+      getArrayMap: function (resultList){
+        let resultFormTemplates = _.map(resultList, function(resultForm) {
+            return {
+              label: resultForm.title,
+              value: resultForm.id,
+              id: resultForm.id,
+              descriptors: resultForm.descriptors,
+              description: resultForm.description,
+              created: resultForm.created,
+              creator: resultForm.creator,
+              createdBy: resultForm.owner,
+              accessGroups: resultForm.accessGroups,
+              accessIndividuals: resultForm.accessIndividuals
+            };
+        });
+        resultFormTemplates.push({
+            label: 'All Fields',
+            value: 'allFields',
+            id: 'allFields',
+            descriptors: [],
+            description: 'All Fields'
+          });
+        return resultFormTemplates;
+      },
+      getResultTemplatesProperties: function() {
+          return resultTemplateProperties;
       },
       getResultCollection: function() {
         return resultFormCollection;
