@@ -150,7 +150,7 @@ module.exports = Marionette.LayoutView.extend({
                         src: (userDefaultTemplate['querySettings'] && userDefaultTemplate['querySettings'].src) || '',
                         federation: (userDefaultTemplate['querySettings'] && userDefaultTemplate['querySettings'].federation) || 'enterprise',
                         sorts: sorts, 
-                        'detail-level': (userDefaultTemplate['querySettings'] && userDefaultTemplate['querySettings']['detail-level']) || 'allFields',
+                        'detail-level': (userDefaultTemplate['querySettings'] && userDefaultTemplate['querySettings']['detail-level']) || 'All Fields',
                         accessGroups: userDefaultTemplate['accessGroups'],
                         accessIndividuals: userDefaultTemplate['accessIndividuals']});
 
@@ -273,7 +273,7 @@ module.exports = Marionette.LayoutView.extend({
                 src: (queryTemplate['querySettings'] && queryTemplate['querySettings'].src) || '',
                 federation: (queryTemplate['querySettings'] && queryTemplate['querySettings'].federation) || 'enterprise',
                 querySettings: sorts, 
-                'detail-level': (queryTemplate['querySettings'] && queryTemplate['querySettings']['detail-level']) || 'allFields',
+                'detail-level': (queryTemplate['querySettings'] && queryTemplate['querySettings']['detail-level']) || 'All Fields',
                 accessGroups: queryTemplate['accessGroups'],
                 accessIndividuals: queryTemplate['accessIndividuals']
             };

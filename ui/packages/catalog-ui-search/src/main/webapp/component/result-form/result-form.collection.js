@@ -17,7 +17,6 @@
  const ResultForm = require('component/search-form/search-form')
  const Common = require('js/Common')
  const user = require('component/singletons/user-instance')
- const Results = require('component/result-form/result-form')
  const wreqr = require('wreqr')
  const $ = require('jquery')
  const _ = require('underscore')
@@ -78,29 +77,19 @@
         bootstrapPromise = new resultTemplatePromise();
       }
       bootstrapPromise.then(() => {
-            const customResultTemplates = _.map(resultTemplates, function(resultForm) {
-                return {
-                    label: resultForm.title,
-                    value:resultForm.title,
-                    id: resultForm.id,
-                    descriptors: resultForm.descriptors,
-                    description: resultForm.description,
-                    created: resultForm.created,
-                    creator: resultForm.creator,
-                    createdBy: resultForm.owner,
-                    accessGroups: resultForm.accessGroups,
-                    accessIndividuals: resultForm.accessIndividuals
-                };
-            });
-            customResultTemplates.push({
-                label: 'All Fields',
-                value: 'All Fields',
-                id: 'allFields',
-                descriptors: [],
-                description: 'All Fields'
-            });
-            this.filteredList = customResultTemplates.filter(function (resultField) {
-              return resultField.id !== 'allFields'
+            this.filteredList = _.map(resultTemplates, function(resultForm) {
+              return {
+                  label: resultForm.title,
+                  value:resultForm.title,
+                  id: resultForm.id,
+                  descriptors: resultForm.descriptors,
+                  description: resultForm.description,
+                  created: resultForm.created,
+                  creator: resultForm.creator,
+                  createdBy: resultForm.owner,
+                  accessGroups: resultForm.accessGroups,
+                  accessIndividuals: resultForm.accessIndividuals
+              };
             });
             this.filteredList.forEach(element => {
               let utcSeconds = element.created / 1000
