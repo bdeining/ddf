@@ -40,6 +40,7 @@
               description: resultForm.description,
               created: resultForm.created,
               creator: resultForm.creator,
+              createdBy: resultForm.owner,
               accessGroups: resultForm.accessGroups,
               accessIndividuals: resultForm.accessIndividuals
             };
