@@ -21,6 +21,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import ddf.catalog.CatalogFramework;
+import ddf.catalog.data.Attribute;
+import ddf.catalog.data.AttributeDescriptor;
+import ddf.catalog.data.MetacardType;
+import ddf.catalog.data.Result;
 import ddf.catalog.data.impl.QueryMetacardTypeImpl;
 import ddf.catalog.federation.FederationException;
 import ddf.catalog.operation.Query;
@@ -167,10 +171,36 @@ class QueryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFuture
         });
   }
 
+  private String buildJson(List<Result> results) {
+
+    List<Map<String, Object>> resultsList = new ArrayList<>();
+    for (Result orig : results) {
+      Map<String, Object> result = new HashMap<>();
+      MetacardType mt = orig.getMetacard().getMetacardType();
+      Map<String, Object> metacard = new HashMap<>();
+
+      for (AttributeDescriptor attrDesc : mt.getAttributeDescriptors()) {
+        Attribute attr = orig.getMetacard().getAttribute(attrDesc.getName());
+        if (attr != null) {
+          if (attrDesc.isMultiValued()) {
+            metacard.put(attr.getName(), attr.getValues());
+          } else {
+            metacard.put(attr.getName(), attr.getValue());
+          }
+        }
+      }
+      result.put("distance", orig.getDistanceInMeters());
+      result.put("relevanceScore", orig.getRelevanceScore());
+      result.put("metacard", metacard);
+      resultsList.add(result);
+    }
+    return GSON.toJson(resultsList);
+  }
+
   private void storeResult(final Map.Entry<DateTime, QueryResponse> queryResponse) {
     String serializedQueryResult;
     try {
-      serializedQueryResult = GSON.toJson(queryResponse.getValue().getResults());
+      serializedQueryResult = buildJson(queryResponse.getValue().getResults());
     } catch (JsonIOException exception) {
       LOGGER.info("Error serializing payload {} to JSON {}", queryResponse, exception);
       return;
