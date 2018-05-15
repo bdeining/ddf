@@ -71,6 +71,10 @@ define([
             this.renderResultForms(this.resultFormCollection.filteredList)
         },
         renderResultForms: function(resultTemplates){
+            if(resultTemplates == undefined)
+            {
+                resultTemplates = [];
+            }
             resultTemplates.push({
                 label: 'All Fields',
                 value: 'All Fields',
