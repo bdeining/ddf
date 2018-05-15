@@ -21,16 +21,20 @@ import static ddf.util.Fallible.success;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.Result;
+import ddf.catalog.data.impl.AttributeImpl;
 import ddf.catalog.data.impl.MetacardImpl;
 import ddf.catalog.data.impl.ResultImpl;
 import ddf.util.Fallible;
 import ddf.util.MapUtils;
-import java.lang.reflect.Type;
+import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -292,14 +296,49 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
         .elseDo(LOGGER::info);
   }
 
+  private List<Result> readJson(String json) {
+    List<Result> results = new ArrayList<>();
+    JsonElement element = new JsonParser().parse(json);
+    if (element.isJsonArray()) {
+      for (JsonElement ele : element.getAsJsonArray()) {
+        JsonObject r = ele.getAsJsonObject();
+        ResultImpl result = new ResultImpl();
+        if (r.get("distance") != null) {
+          result.setDistanceInMeters(r.get("distance").getAsDouble());
+        }
+        if (r.get("relevanceScore") != null) {
+          result.setRelevanceScore(r.get("relevanceScore").getAsDouble());
+        }
+        MetacardImpl metacard = new MetacardImpl();
+        JsonObject m = r.get("metacard").getAsJsonObject();
+        for (String key : m.keySet()) {
+          JsonElement value = m.get(key);
+          if (value.isJsonArray()) {
+            List<Serializable> values = new ArrayList<>();
+            for (JsonElement i : value.getAsJsonArray()) {
+              values.add(i.getAsString());
+            }
+            metacard.setAttribute(new AttributeImpl(key, values));
+          } else {
+            metacard.setAttribute(key, value.getAsString());
+          }
+        }
+        result.setMetacard(metacard);
+        results.add(result);
+      }
+    }
+    return results;
+  }
+
   private Fallible<?> processDelivery(final Map.Entry<String, String> entry) {
     final Fallible<List<Result>> entryValue =
         of(entry.getValue())
             .tryMap(
                 value -> {
                   try {
-                    Type type = new TypeToken<List<Result>>() {}.getType();
-                    return of(gson.fromJson(value, type));
+                    // Type type = new TypeToken<List<Result>>() {}.getType();
+                    // return of(gson.fromJson(value, type));
+                    return of(readJson(value));
                   } catch (Exception exception) {
                     return error("Error de-serializing cache entry: %s", exception);
                   }
