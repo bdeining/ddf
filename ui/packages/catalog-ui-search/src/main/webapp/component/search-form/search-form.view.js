@@ -89,7 +89,7 @@ module.exports = Marionette.LayoutView.extend({
                     src: (this.model.get('querySettings') && this.model.get('querySettings').src) || '',
                     federation: (this.model.get('querySettings') && this.model.get('querySettings').federation) || 'enterprise',
                     sorts: sorts,
-                    'detail-level': (this.model.get('querySettings') && this.model.get('querySettings')['detail-level']) || 'allFields',
+                    'detail-level': (this.model.get('querySettings') && this.model.get('querySettings')['detail-level']) || 'All Fields',
                     accessGroups: this.model.get('accessGroups'),
                     accessIndividuals: this.model.get('accessIndividuals')
                 });

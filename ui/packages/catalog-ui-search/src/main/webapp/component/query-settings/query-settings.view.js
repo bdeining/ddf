@@ -57,30 +57,41 @@ define([
         initialize: function () {
             this.model = this.model._cloneOf ? store.getQueryById(this.model._cloneOf) : this.model;
             this.listenTo(this.model, 'change:sortField change:sortOrder change:src change:federation', Common.safeCallback(this.onBeforeShow));
+            this.resultFormCollection = ResultForm.getResultCollection();
+            this.listenTo(this.resultFormCollection, 'change:added', this.handleFormUpdate)
+        },
+        handleFormUpdate: function(newForm) {
+            this.renderResultForms(this.resultFormCollection.filteredList)
         },
         onBeforeShow: function () {
             this.setupSortFieldDropdown();
             this.setupSrcDropdown();
             this.setupScheduling();
             this.turnOnEditing();
-
-            let resultTemplates = ResultForm.getResultTemplatesProperties();
-            //TODO: Figure out why the All Fields form always shows up at the end and maybe reverse the way the array is constructed
+            this.renderResultForms(this.resultFormCollection.filteredList)
+        },
+        renderResultForms: function(resultTemplates){
+            resultTemplates.push({
+                label: 'All Fields',
+                value: 'All Fields',
+                id: 'All Fields',
+                descriptors: [],
+                description: 'All Fields'
+            });
+            resultTemplates =  _.uniq(resultTemplates, 'id');
             let lastIndex = resultTemplates.length - 1;
-            if (resultTemplates) {
-                let detailLevelProperty = new Property({
-                    label: 'Result Form',
-                    enum: ResultForm.getResultTemplatesProperties(),
-                    value: [this.model.get('detail-level') || (resultTemplates && resultTemplates[lastIndex] && resultTemplates[lastIndex].value)],
-                    showValidationIssues: false,
-                    id: 'Result Form'
-                });
-                this.listenTo(detailLevelProperty, 'change:value', this.handleChangeDetailLevel);
-                this.resultForm.show(new PropertyView({
-                    model: detailLevelProperty
-                }));
-                this.resultForm.currentView.turnOnEditing();
-            }
+            let detailLevelProperty = new Property({
+                label: 'Result Form',
+                enum: resultTemplates,
+                value: [this.model.get('detail-level') || (resultTemplates && resultTemplates[lastIndex] && resultTemplates[lastIndex].value)],
+                showValidationIssues: false,
+                id: 'Result Form'
+            });
+            this.listenTo(detailLevelProperty, 'change:value', this.handleChangeDetailLevel);
+            this.resultForm.show(new PropertyView({
+                model: detailLevelProperty
+            }));
+            this.resultForm.currentView.turnOnEditing();
         },
         handleChangeDetailLevel: function (model, values) {
             $.each(model.get('enum'), (function (index, value) {
@@ -153,7 +164,7 @@ define([
             }
             const sorts = this.settingsSortField.currentView.collection.toJSON();
             let detailLevel = this.resultForm.currentView && this.resultForm.currentView.model.get('value')[0]
-            if (detailLevel && detailLevel === 'allFields') {
+            if (detailLevel && detailLevel === 'All Fields') {
                 detailLevel = undefined;
             }
             const scheduleModel = this.settingsSchedule.currentView.getSchedulingConfiguration();
