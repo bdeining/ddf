@@ -895,10 +895,9 @@ public class MetacardApplication implements SparkApplication {
                   SUCCESS_RESPONSE_TYPE, "No delivery methods specified. Nothing to do.");
             }
 
-            Filter queryFilter = filterBuilder.attribute(Core.ID).is().like().text(metacardId);
-
-            Query query = new QueryImpl(queryFilter);
-            QueryRequest queryRequest = new QueryRequestImpl(query);
+            List<String> sources =
+                (List<String>) incoming.getOrDefault("sources", Collections.emptyList());
+            QueryRequest queryRequest = getQueryRequest(metacardId, sources);
 
             QueryResponse queryResponse = catalogFramework.query(queryRequest);
 
@@ -985,6 +984,20 @@ public class MetacardApplication implements SparkApplication {
     exception(IOException.class, util::handleIOException);
 
     exception(RuntimeException.class, util::handleRuntimeException);
+  }
+
+  private QueryRequest getQueryRequest(String metacardId, List<String> sources) {
+    Filter queryFilter = filterBuilder.attribute(Core.ID).is().like().text(metacardId);
+    Query query = new QueryImpl(queryFilter);
+    QueryRequest queryRequest;
+    if (sources.isEmpty()) {
+      LOGGER.trace("Performing enterprise query...");
+      queryRequest = new QueryRequestImpl(query, true);
+    } else {
+      LOGGER.trace("Performing query on specified sources: {}", sources);
+      queryRequest = new QueryRequestImpl(query, sources);
+    }
+    return queryRequest;
   }
 
   private Set<String> getHiddenFields(List<Result> metacards) {

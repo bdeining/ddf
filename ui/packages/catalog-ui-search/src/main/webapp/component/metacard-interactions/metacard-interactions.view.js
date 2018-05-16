@@ -272,9 +272,13 @@ define([
             var ids = this.model.map(function(result) {
                 return result.get('metacard').get('properties').get('id');
             });
+            var source = this.model.map(function(result) {
+                return result.get('metacard').get('properties').get('source-id');
+            });
             lightboxInstance.lightboxContent.show(new MetacardOrderingView({
                 model: new Backbone.Model({
-                    metacardId: ids
+                    metacardId: ids,
+                    sourceId: source
                 })
             }));
         }, serializeData: function(){
