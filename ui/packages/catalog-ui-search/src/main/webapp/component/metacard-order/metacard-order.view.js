@@ -77,6 +77,7 @@ module.exports = Marionette.LayoutView.extend({
             url: '/search/catalog/internal/delivery',
             data: JSON.stringify({ 
                 metacardId: this.model.get('metacardId')[0],
+                sources: this.model.get('sourceId'),
                 deliveryIds: this.deliveryPicker.currentView.model.getValue()[0],
                 username: user.get('user').get('userid')
             }),
