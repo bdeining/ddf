@@ -17,7 +17,9 @@ import static org.apache.commons.lang3.Validate.notNull;
 
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.boon.json.annotations.JsonProperty;
+import org.codice.ddf.catalog.ui.forms.api.FilterNode;
 
 public class FilterNodeImpl implements FilterNode {
   @JsonProperty("type")
@@ -28,7 +30,7 @@ public class FilterNodeImpl implements FilterNode {
 
   private String property;
 
-  // If changed, update the FilterNodeValueSerializer as well
+  /** If changed, update the {@link FilterNodeValueSerializer} as well. */
   private String value;
 
   private Map<String, Object> templateProperties;
@@ -105,6 +107,7 @@ public class FilterNodeImpl implements FilterNode {
   }
 
   @Override
+  @Nullable
   public String getProperty() {
     if (!isLeaf()) {
       throw new IllegalStateException("No property value exists for a logical operator");
@@ -113,6 +116,7 @@ public class FilterNodeImpl implements FilterNode {
   }
 
   @Override
+  @Nullable
   public String getValue() {
     if (!isLeaf()) {
       throw new IllegalStateException("No target value exists for a logical operator");

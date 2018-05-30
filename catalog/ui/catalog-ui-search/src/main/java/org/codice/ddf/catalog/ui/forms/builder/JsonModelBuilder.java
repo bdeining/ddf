@@ -11,7 +11,7 @@
  * License is distributed along with this program and can be found at
  * <http://www.gnu.org/licenses/lgpl.html>.
  */
-package org.codice.ddf.catalog.ui.forms.model;
+package org.codice.ddf.catalog.ui.forms.builder;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -21,6 +21,9 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.codice.ddf.catalog.ui.forms.api.FilterNode;
+import org.codice.ddf.catalog.ui.forms.api.FlatFilterBuilder;
+import org.codice.ddf.catalog.ui.forms.model.FilterNodeImpl;
 
 /**
  * Single-use object for constructing a {@link FilterNode} that is serializable to JSON, typically
@@ -224,7 +227,6 @@ public class JsonModelBuilder implements FlatFilterBuilder<FilterNode> {
     return this;
   }
 
-  // CanModify
   private void verifyResultNotYetRetrieved() {
     if (complete) {
       throw new IllegalStateException(
@@ -232,34 +234,33 @@ public class JsonModelBuilder implements FlatFilterBuilder<FilterNode> {
     }
   }
 
-  // CanSetField
   private void verifyTerminalNodeInProgress() {
     if (nodeInProgress == null) {
       throw new IllegalStateException("Cannot complete operation, no leaf node in progress");
     }
   }
 
-  // ~
+  // Verify coverage: https://codice.atlassian.net/browse/DDF-3832
   private void verifyLogicalNodeInProgress() {
     if (depth.isEmpty()) {
       throw new IllegalStateException("Cannot end the logic node, no node in progress");
     }
   }
 
-  // ~
+  // Verify coverage: https://codice.atlassian.net/browse/DDF-3832
   private void verifyLogicalNodeNotInProgress() {
     if (!depth.isEmpty()) {
       throw new IllegalStateException("Logic node in progress, results not ready for return");
     }
   }
 
+  // Verify coverage: https://codice.atlassian.net/browse/DDF-3832
   private void verifyLogicalNodeHasChildren() {
     if (!depth.isEmpty() && depth.peek().isEmpty()) {
       throw new IllegalStateException("Cannot end the logic node, no children provided");
     }
   }
 
-  // CanReturn
   private void verifyResultNotNull() {
     if (rootNode == null) {
       throw new IllegalStateException(
@@ -267,8 +268,6 @@ public class JsonModelBuilder implements FlatFilterBuilder<FilterNode> {
     }
   }
 
-  // CanStartNew
-  // CanEnd
   private void verifyTerminalNodeNotInProgress() {
     if (nodeInProgress != null) {
       throw new IllegalStateException("Cannot complete operation, a leaf node is in progress");

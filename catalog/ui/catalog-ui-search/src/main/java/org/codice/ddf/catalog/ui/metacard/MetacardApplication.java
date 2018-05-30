@@ -1101,11 +1101,7 @@ public class MetacardApplication implements SparkApplication {
   }
 
   private boolean isSystemTemplate(Metacard metacard) {
-    return metacard
-        .getAttribute(Core.METACARD_OWNER)
-        .getValue()
-        .toString()
-        .contains(SYSTEM_TEMPLATE);
+    return metacard.getTags().contains(SYSTEM_TEMPLATE);
   }
 
   private void trySleep(long millis) {

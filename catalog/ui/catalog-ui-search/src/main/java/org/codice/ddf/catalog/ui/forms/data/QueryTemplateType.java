@@ -22,7 +22,7 @@ import ddf.catalog.data.impl.QueryMetacardTypeImpl;
 import ddf.catalog.data.impl.types.CoreAttributes;
 import ddf.catalog.data.impl.types.SecurityAttributes;
 import java.util.Set;
-import org.codice.ddf.catalog.ui.forms.model.TransformVisitor;
+import org.codice.ddf.catalog.ui.forms.filter.TransformVisitor;
 
 /**
  * Represents a data structure for storing a query template. The {@code template.query.filter} field
@@ -34,7 +34,7 @@ import org.codice.ddf.catalog.ui.forms.model.TransformVisitor;
  *
  * @see <a href="http://schemas.opengis.net/filter/2.0/">schemas.opengis.net/filter/2.0/</a>
  * @see org.codice.ddf.catalog.ui.forms.model.pojo.FormTemplate
- * @see org.codice.ddf.catalog.ui.forms.model.pojo.FilterNode
+ * @see org.codice.ddf.catalog.ui.forms.api.FilterNode
  * @see TransformVisitor
  */
 public class QueryTemplateType extends MetacardTypeImpl {

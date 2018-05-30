@@ -11,7 +11,7 @@
  * License is distributed along with this program and can be found at
  * <http://www.gnu.org/licenses/lgpl.html>.
  */
-package org.codice.ddf.catalog.ui.forms.model;
+package org.codice.ddf.catalog.ui.forms.filter;
 
 import static java.lang.String.format;
 import static junit.framework.TestCase.fail;
@@ -34,7 +34,8 @@ import net.opengis.filter.v_2_0.PropertyIsLikeType;
 import org.boon.Boon;
 import org.codice.ddf.catalog.ui.forms.SearchFormsLoaderTest;
 import org.codice.ddf.catalog.ui.forms.api.VisitableElement;
-import org.codice.ddf.catalog.ui.forms.filter.VisitableJsonElementImpl;
+import org.codice.ddf.catalog.ui.forms.builder.XmlModelBuilder;
+import org.codice.ddf.catalog.ui.forms.model.FilterNodeMapImpl;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -76,13 +77,13 @@ public class TransformVisitorXmlTest {
         .withBinding(BinaryLogicOpType.class)
         .withExpression(BinaryLogicOpType::getOps)
         .satisfies(
-            j ->
-                forElement(j)
+            child1 ->
+                forElement(child1)
                     .withBinding(BinaryComparisonOpType.class)
                     .verifyExpression(BinaryComparisonOpType::getExpression)
                     .withData(DEPTH_PROP, DEPTH_VAL),
-            j ->
-                forElement(j)
+            child2 ->
+                forElement(child2)
                     .withBinding(BinarySpatialOpType.class)
                     .verifyExpressionOrAny(BinarySpatialOpType::getExpressionOrAny)
                     .withData("anyGeo", "WKT()"));
@@ -97,28 +98,28 @@ public class TransformVisitorXmlTest {
         .withBinding(BinaryLogicOpType.class)
         .withExpression(BinaryLogicOpType::getOps)
         .satisfies(
-            j ->
-                forElement(j)
+            depth1Child1 ->
+                forElement(depth1Child1)
                     .withBinding(BinaryComparisonOpType.class)
                     .verifyExpression(BinaryComparisonOpType::getExpression)
                     .withData(DEPTH_PROP, DEPTH_VAL),
-            j ->
-                forElement(j)
+            depth1Child2 ->
+                forElement(depth1Child2)
                     .withBinding(BinaryLogicOpType.class)
                     .withExpression(BinaryLogicOpType::getOps)
                     .satisfies(
-                        k ->
-                            forElement(k)
+                        depth2Child1 ->
+                            forElement(depth2Child1)
                                 .withBinding(BinaryComparisonOpType.class)
                                 .verifyExpression(BinaryComparisonOpType::getExpression)
                                 .withData(DEPTH_PROP, DEPTH_VAL),
-                        k ->
-                            forElement(k)
+                        depth2Child2 ->
+                            forElement(depth2Child2)
                                 .withBinding(BinaryTemporalOpType.class)
                                 .verifyExpressionOrAny(BinaryTemporalOpType::getExpressionOrAny)
                                 .withData("created", EXPECTED_DATE),
-                        k ->
-                            forElement(k)
+                        depth2Child3 ->
+                            forElement(depth2Child3)
                                 .withBinding(PropertyIsLikeType.class)
                                 .verifyExpression(PropertyIsLikeType::getExpression)
                                 .withData("name", "Bob")));
@@ -143,7 +144,7 @@ public class TransformVisitorXmlTest {
       fail("File was not found " + jsonFile.getAbsolutePath());
     }
 
-    return VisitableJsonElementImpl.create(
-        new FilterNodeMapImpl(Boon.resourceMap(jsonFile.getPath())));
+    FilterNodeMapImpl node = new FilterNodeMapImpl(Boon.resourceMap(jsonFile.getPath()));
+    return VisitableJsonElementImpl.create(node);
   }
 }
