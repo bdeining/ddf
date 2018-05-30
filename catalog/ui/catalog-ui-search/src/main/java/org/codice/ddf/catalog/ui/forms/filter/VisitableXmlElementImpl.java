@@ -42,6 +42,8 @@ import net.opengis.filter.v_2_0.PropertyIsLikeType;
 import net.opengis.filter.v_2_0.PropertyIsNilType;
 import net.opengis.filter.v_2_0.PropertyIsNullType;
 import net.opengis.filter.v_2_0.UnaryLogicOpType;
+import org.codice.ddf.catalog.ui.forms.api.FilterVisitor2;
+import org.codice.ddf.catalog.ui.forms.api.VisitableElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,11 +122,12 @@ public abstract class VisitableXmlElementImpl<T> implements VisitableElement<T> 
             .orElse(null);
 
     if (root != null) {
-      LOGGER.trace("Valid root found, beginning traversal...");
+      LOGGER.trace("Valid root found, beginning traversal");
       return root;
     }
 
     // Support can be enhanced in the future, but currently these components aren't needed
+    // Ticket for adding support - https://codice.atlassian.net/browse/DDF-3829
     handleUnsupported(filterType.getId());
     handleUnsupported(filterType.getExtensionOps());
 
@@ -152,6 +155,7 @@ public abstract class VisitableXmlElementImpl<T> implements VisitableElement<T> 
     }
 
     // Support can be enhanced in the future, but currently these components aren't needed
+    // Ticket for adding support - https://codice.atlassian.net/browse/DDF-3829
     handleUnsupported(unaryLogicOpType.getId());
     handleUnsupported(unaryLogicOpType.getExtensionOps());
 
@@ -384,6 +388,7 @@ public abstract class VisitableXmlElementImpl<T> implements VisitableElement<T> 
                 .map(SubtypeFactory::createElement)
                 .collect(Collectors.toList());
       } catch (ClassCastException e) {
+        // Ticket to add support: https://codice.atlassian.net/browse/DDF-3830
         throw new UnsupportedOperationException("GML or ANY XML is currently not supported", e);
       }
     }
@@ -425,10 +430,17 @@ public abstract class VisitableXmlElementImpl<T> implements VisitableElement<T> 
    * Represents a node containing the value of a property. In Filter XML it corresponds to a {@code
    * <Literal/>} type.
    *
-   * <p>TODO: Seek Clarification on the following:
+   * <p>When a series of {@code <Literal/>} elements are encountered by the Filter JAXB binding,
+   * they are each read as their own {@link LiteralType} <b>in order of appearance</b> with the data
+   * of each element being populated into their own list of serializables, which can be obtained
+   * using {@link LiteralType#getContent()}. So, for the following series:
    *
-   * <p>Does a single LiteralType support a collection of <Literal/> tags, since it's a list of
-   * serializable? How does that interact when Functions are thrown into the mix?
+   * <p>{@code <Literal>0.78</Literal> <Literal>my value</Literal> <Literal>true</Literal> }
+   *
+   * <p>The result would be a list of {@link LiteralType}s, each with a list of serializables of
+   * size one. The corresponding entry in each list on each {@link LiteralType} would be String
+   * values in the order of "0.78", "my value", and "true". Additional parsing is necessary to
+   * hydrate a primitive type.
    */
   private static class LiteralElement extends VisitableXmlElementImpl<List<Serializable>> {
     private final List<Serializable> value;

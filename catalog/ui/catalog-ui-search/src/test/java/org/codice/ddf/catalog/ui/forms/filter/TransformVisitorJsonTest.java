@@ -11,13 +11,13 @@
  * License is distributed along with this program and can be found at
  * <http://www.gnu.org/licenses/lgpl.html>.
  */
-package org.codice.ddf.catalog.ui.forms.model;
+package org.codice.ddf.catalog.ui.forms.filter;
 
 import static java.lang.String.format;
 import static junit.framework.TestCase.fail;
-import static org.codice.ddf.catalog.ui.forms.model.FilterNodeAssertionSupport.assertLeafNode;
-import static org.codice.ddf.catalog.ui.forms.model.FilterNodeAssertionSupport.assertParentNode;
-import static org.codice.ddf.catalog.ui.forms.model.FilterNodeAssertionSupport.assertTemplatedNode;
+import static org.codice.ddf.catalog.ui.forms.FilterNodeAssertionSupport.assertLeafNode;
+import static org.codice.ddf.catalog.ui.forms.FilterNodeAssertionSupport.assertParentNode;
+import static org.codice.ddf.catalog.ui.forms.FilterNodeAssertionSupport.assertTemplatedNode;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,10 +25,12 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import javax.xml.bind.JAXBElement;
+import net.opengis.filter.v_2_0.FilterType;
 import org.codice.ddf.catalog.ui.forms.SearchFormsLoaderTest;
-import org.codice.ddf.catalog.ui.forms.filter.FilterReader;
-import org.codice.ddf.catalog.ui.forms.filter.VisitableElement;
-import org.codice.ddf.catalog.ui.forms.filter.VisitableXmlElementImpl;
+import org.codice.ddf.catalog.ui.forms.api.FilterNode;
+import org.codice.ddf.catalog.ui.forms.api.VisitableElement;
+import org.codice.ddf.catalog.ui.forms.builder.JsonModelBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -117,7 +119,8 @@ public class TransformVisitorJsonTest {
       fail("File was not found " + xmlFile.getAbsolutePath());
     }
 
-    return VisitableXmlElementImpl.create(
-        new FilterReader().unmarshalFilter(new FileInputStream(xmlFile)));
+    JAXBElement<FilterType> filter =
+        new FilterReader().unmarshalFilter(new FileInputStream(xmlFile));
+    return VisitableXmlElementImpl.create(filter);
   }
 }

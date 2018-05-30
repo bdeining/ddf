@@ -45,6 +45,7 @@ import org.codice.ddf.itests.common.AbstractIntegrationTest;
 import org.codice.ddf.test.common.LoggingUtils;
 import org.codice.ddf.test.common.annotations.BeforeExam;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.junit.PaxExam;
@@ -291,6 +292,8 @@ public class TestCatalogSearchUi extends AbstractIntegrationTest {
     assertThat(body.get(WORKSPACE_QUERIES), is(queries));
   }
 
+  @SuppressWarnings("squid:S1607" /* Feature is off by default */)
+  @Ignore
   @Test
   public void testGetSystemTemplates() {
     Set<String> expectedQueryTemplateTitles =
@@ -342,12 +345,10 @@ public class TestCatalogSearchUi extends AbstractIntegrationTest {
     assertThat(json.get("[1].filterTemplate.filters[0].type"), is("="));
     assertThat(json.get("[1].filterTemplate.filters[0].property"), is("datatype"));
     assertThat(json.get("[1].filterTemplate.filters[0].value"), is("Image"));
-    //    assertThat(json.get("[0].filterTemplate.filters[0].templated"), is(false));
 
     assertThat(json.get("[1].filterTemplate.filters[1].type"), is("="));
     assertThat(json.get("[1].filterTemplate.filters[1].property"), is("title"));
     assertThat(json.get("[1].filterTemplate.filters[1].value"), is(nullValue()));
-    //    assertThat(json.get("[0].filterTemplate.filters[1].templated"), is(true));
 
     assertThat(
         json.get("[1].filterTemplate.filters[1].templateProperties.defaultValue"), is(nullValue()));
@@ -358,7 +359,6 @@ public class TestCatalogSearchUi extends AbstractIntegrationTest {
     assertThat(json.get("[1].filterTemplate.filters[2].type"), is("<="));
     assertThat(json.get("[1].filterTemplate.filters[2].property"), is("media.bit-rate"));
     assertThat(json.get("[1].filterTemplate.filters[2].value"), is(nullValue()));
-    //    assertThat(json.get("[0].filterTemplate.filters[2].templated"), is(true));
 
     assertThat(
         json.get("[1].filterTemplate.filters[2].templateProperties.defaultValue"), is(nullValue()));

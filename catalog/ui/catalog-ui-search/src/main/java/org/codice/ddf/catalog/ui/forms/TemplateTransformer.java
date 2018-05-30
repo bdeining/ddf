@@ -11,7 +11,7 @@
  * License is distributed along with this program and can be found at
  * <http://www.gnu.org/licenses/lgpl.html>.
  */
-package org.codice.ddf.catalog.ui.forms.model;
+package org.codice.ddf.catalog.ui.forms;
 
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.impl.types.SecurityAttributes;
@@ -26,13 +26,18 @@ import javax.annotation.Nullable;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import net.opengis.filter.v_2_0.FilterType;
+import org.codice.ddf.catalog.ui.forms.api.FilterNode;
+import org.codice.ddf.catalog.ui.forms.builder.JsonModelBuilder;
+import org.codice.ddf.catalog.ui.forms.builder.XmlModelBuilder;
 import org.codice.ddf.catalog.ui.forms.data.AttributeGroupMetacard;
 import org.codice.ddf.catalog.ui.forms.data.QueryTemplateMetacard;
 import org.codice.ddf.catalog.ui.forms.filter.FilterProcessingException;
 import org.codice.ddf.catalog.ui.forms.filter.FilterReader;
 import org.codice.ddf.catalog.ui.forms.filter.FilterWriter;
+import org.codice.ddf.catalog.ui.forms.filter.TransformVisitor;
 import org.codice.ddf.catalog.ui.forms.filter.VisitableJsonElementImpl;
 import org.codice.ddf.catalog.ui.forms.filter.VisitableXmlElementImpl;
+import org.codice.ddf.catalog.ui.forms.model.FilterNodeMapImpl;
 import org.codice.ddf.catalog.ui.forms.model.pojo.FieldFilter;
 import org.codice.ddf.catalog.ui.forms.model.pojo.FormTemplate;
 import org.slf4j.Logger;
@@ -57,12 +62,16 @@ public class TemplateTransformer {
     return TemplateTransformer.toFormTemplate(metacard) == null;
   }
 
-  /* PUT */
+  /** Convert the JSON representation of a FormTemplate to a QueryTemplateMetacard. */
   @Nullable
   public Metacard toQueryTemplateMetacard(Map<String, Object> formTemplate) {
     Map<String, Object> filterJson = (Map) formTemplate.get("filterTemplate");
     String title = (String) formTemplate.get("title");
     String description = (String) formTemplate.get("description");
+
+    if (filterJson == null) {
+      return null;
+    }
 
     TransformVisitor<JAXBElement> visitor = new TransformVisitor<>(new XmlModelBuilder());
     try {
@@ -97,9 +106,7 @@ public class TemplateTransformer {
     return null;
   }
 
-  /**
-   * Convert a query template metacard into the JSON representation of FormTemplate. Used for GET.
-   */
+  /** Convert a query template metacard into the JSON representation of FormTemplate. */
   @Nullable
   public static FormTemplate toFormTemplate(Metacard metacard) {
     if (!QueryTemplateMetacard.isQueryTemplateMetacard(metacard)) {
@@ -112,7 +119,6 @@ public class TemplateTransformer {
 
     List<Serializable> accessIndividuals = new ArrayList<>();
     List<Serializable> accessGroups = new ArrayList<>();
-    String metacardOwner = "System Template";
 
     if (metacard.getAttribute(SecurityAttributes.ACCESS_INDIVIDUALS) != null) {
       accessIndividuals = metacard.getAttribute(SecurityAttributes.ACCESS_INDIVIDUALS).getValues();
@@ -122,15 +128,22 @@ public class TemplateTransformer {
       accessGroups = metacard.getAttribute(SecurityAttributes.ACCESS_GROUPS).getValues();
     }
 
+    String metacardOwner = "system";
     if (metacard.getAttribute(Core.METACARD_OWNER) != null) {
       metacardOwner = metacard.getAttribute(Core.METACARD_OWNER).getValue().toString();
     }
 
     try {
       FilterReader reader = new FilterReader();
+      String formsFilter = wrapped.getFormsFilter();
+      if (formsFilter == null) {
+        LOGGER.debug(
+            "Invalid form data was ingested for metacard [{}], no form filter present",
+            wrapped.getId());
+        return null;
+      }
       JAXBElement<FilterType> root =
-          reader.unmarshalFilter(
-              new ByteArrayInputStream(wrapped.getFormsFilter().getBytes("UTF-8")));
+          reader.unmarshalFilter(new ByteArrayInputStream(formsFilter.getBytes("UTF-8")));
       VisitableXmlElementImpl.create(root).accept(visitor);
       return new FormTemplate(
           wrapped,
@@ -158,7 +171,7 @@ public class TemplateTransformer {
     return null;
   }
 
-  /* PUT */
+  /** Convert the JSON representation of FieldFilter to an AttributeGroupMetacard. */
   @Nullable
   public Metacard toAttributeGroupMetacard(Map<String, Object> resultTemplateMap) {
     FieldFilter fieldFilter = new FieldFilter(resultTemplateMap);

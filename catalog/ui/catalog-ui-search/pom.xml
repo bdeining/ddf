@@ -398,6 +398,10 @@
             <artifactId>util-uuidgenerator-api</artifactId>
             <version>${project.version}</version>
         </dependency>
+      <dependency>
+        <groupId>ddf.catalog.core</groupId>
+        <artifactId>catalog-core-api-impl</artifactId>
+      </dependency>
     </dependencies>
 
     <build>
