@@ -65,7 +65,7 @@ module.exports =  Marionette.ItemView.extend({
                         let loadingview = new LoadingView();
                             this.model.url = '/search/catalog/internal/forms/' + this.model.get('id');
                             this.model.destroy({
-                                data: JSON.stringify({'metacard.owner': [this.model.get('createdBy')]}),
+                                data: JSON.stringify({'metacard.owner': this.model.get('createdBy')}),
                                 contentType: 'application/json',
                                 wait: true,
                                 error: function(model, xhr, options){
@@ -73,7 +73,7 @@ module.exports =  Marionette.ItemView.extend({
                                         title: 'Error!',
                                         message: "Unable to delete the forms: " + xhr.responseText,
                                         type: 'error'
-                                    });
+                                    }, 2500);
                                     throw new Error('Error Deleting Template: ' + xhr.responseText);                                  
                                 }.bind(this),
                                 success: function(model, xhr, options) {
@@ -146,7 +146,15 @@ module.exports =  Marionette.ItemView.extend({
         isSystemTemplate: function() {
             this.$el.toggleClass('is-system-template', this.model.get('createdBy') === 'System Template');
         },
-        handleClick: function() {
+        handleEdit: function() {
+            this.model.set({
+                type: 'new-form',
+                title: this.model.get('name'),
+                filterTree: this.model.get('filterTemplate'),
+                id: this.model.get('id'),
+                accessGroups: this.model.get('accessGroups'),
+                accessIndividuals: this.model.get('accessIndividuals')
+            });
             this.$el.trigger('closeDropdown.' + CustomElements.getNamespace());
             this.model.trigger('change:type');
         },

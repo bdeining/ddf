@@ -176,7 +176,7 @@ module.exports = Backbone.AssociatedModel.extend({
         metacardDefinitions.addMetacardDefinitions(resp.types);
         if (resp.results) {
             var queryId = this.getQueryId();
-            var selectedResultTemplate = ResultForm.getResultCollection().filteredList.filter(form => (form.id === this.get('selectedResultTemplate' ) || form.value === this.get('selectedResultTemplate') ))[0];
+            var selectedResultTemplate = ResultForm.getResultTemplatesProperties().filter(form => form.id === this.get('selectedResultTemplate'))[0];
             var color = this.getColor();
             _.forEach(resp.results, function (result) {
                 result.propertyTypes = resp.types[result.metacard.properties['metacard-type']];

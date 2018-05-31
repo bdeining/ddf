@@ -66,35 +66,31 @@ let bootstrapPromise = sharedSearchFormPromise();
         })
     }],
    addMySharedForms: function() {
-    if (!this.isDestroyed){
-        if (promiseIsResolved === true) {
-            promiseIsResolved = false;
-            bootstrapPromise = new sharedSearchFormPromise();
-        }
-        bootstrapPromise.then(() => {
-            $.each(sharedTemplates, (index, value) => {
-                if (this.checkIfShareable(value)) {
-                    let utcSeconds = value.created / 1000;
-                    let d = new Date(0);
-                    d.setUTCSeconds(utcSeconds);
-                    this.addSearchForm(new SearchForm({
-                        createdOn: Common.getHumanReadableDate(d),
-                        id: value.id,
-                        name: value.title,
-                        description: value.description,
-                        type: 'custom',
-                        filterTemplate: JSON.stringify(value.filterTemplate),
-                        accessIndividuals: value.accessIndividuals,
-                        accessGroups: value.accessGroups,
-                        createdBy: value.creator,
-                        owner: value.owner,
-                        querySettings: value.querySettings
-                    }));
-                }
-            });
-            this.doneLoading();
-        })
-    };
+       templatePromise.then(() => {
+            if (!this.isDestroyed){
+                sharedTemplates.forEach((value, index) => {
+                    if (this.checkIfShareable(value)) {
+                        let utcSeconds = value.created / 1000;
+                        let d = new Date(0);
+                        d.setUTCSeconds(utcSeconds);
+                        this.addSearchForm(new SearchForm({
+                            createdOn: Common.getHumanReadableDate(d),
+                            id: value.id,
+                            name: value.title,
+                            description: value.description,
+                            type: 'custom',
+                            filterTemplate: JSON.stringify(value.filterTemplate),
+                            accessIndividuals: value.accessIndividuals,
+                            accessGroups: value.accessGroups,
+                            createdBy: value.creator,
+                            owner: value.owner,
+                            querySettings: value.querySettings
+                        }));
+                    }
+                });
+                this.doneLoading();
+            }
+       });
    },
    checkIfShareable: function(template) {
        if (this.checkIfInGroup(template) || this.checkIfInIndividiuals(template)) {
