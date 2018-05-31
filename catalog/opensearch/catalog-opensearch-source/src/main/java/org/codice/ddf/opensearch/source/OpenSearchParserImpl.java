@@ -16,6 +16,7 @@ package org.codice.ddf.opensearch.source;
 import com.google.common.annotations.VisibleForTesting;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.io.WKTWriter;
 import ddf.catalog.data.Result;
 import ddf.catalog.impl.filter.TemporalFilter;
 import ddf.catalog.operation.Query;
@@ -28,7 +29,6 @@ import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -45,6 +45,9 @@ import org.slf4j.LoggerFactory;
 public class OpenSearchParserImpl implements OpenSearchParser {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OpenSearchParserImpl.class);
+
+  private static final ThreadLocal<WKTWriter> WKT_WRITER_THREAD_LOCAL =
+      ThreadLocal.withInitial(WKTWriter::new);
 
   @VisibleForTesting static final String USER_DN = "dn";
 
@@ -152,17 +155,15 @@ public class OpenSearchParserImpl implements OpenSearchParser {
       @Nullable PointRadius pointRadius,
       List<String> parameters) {
 
-    if (Stream.of(geometry, boundingBox, polygon, pointRadius).filter(Objects::nonNull).count()
-        > 1) {
-      throw new IllegalArgumentException("Only one spatial search may be populated");
+    if (geometry != null) {
+      checkAndReplace(
+          client,
+          WKT_WRITER_THREAD_LOCAL.get().write(geometry),
+          OpenSearchConstants.GEOMETRY,
+          parameters);
     }
 
-    if (geometry != null) {
-      throw new IllegalArgumentException(
-          "Setting the "
-              + OpenSearchConstants.GEOMETRY
-              + " query parameter is currently not supported by the OpenSearchSource");
-    } else if (boundingBox != null) {
+    if (boundingBox != null) {
       checkAndReplace(
           client,
           Stream.of(
@@ -174,7 +175,9 @@ public class OpenSearchParserImpl implements OpenSearchParser {
               .collect(Collectors.joining(OpenSearchConstants.BBOX_DELIMITER)),
           OpenSearchConstants.BBOX,
           parameters);
-    } else if (polygon != null) {
+    }
+
+    if (polygon != null) {
       checkAndReplace(
           client,
           Arrays.stream(polygon.getCoordinates())
@@ -183,7 +186,9 @@ public class OpenSearchParserImpl implements OpenSearchParser {
               .collect(Collectors.joining(OpenSearchConstants.POLYGON_LON_LAT_DELIMITER)),
           OpenSearchConstants.POLYGON,
           parameters);
-    } else if (pointRadius != null) {
+    }
+
+    if (pointRadius != null) {
       checkAndReplace(
           client, String.valueOf(pointRadius.getLat()), OpenSearchConstants.LAT, parameters);
       checkAndReplace(
