@@ -121,6 +121,12 @@ define([
                         property: property,
                         value: ''
                     };
+                default:
+                    return {
+                        type: 'INTERSECTS',
+                        property: property,
+                        value: ''
+                    };
             }
         },
         generateFilterForFilterFunction: function(filterFunctionName, params) {

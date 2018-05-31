@@ -20,6 +20,7 @@ const CustomElements = require('js/CustomElements');
 const user = require('../singletons/user-instance');
 const DropdownModel = require('../dropdown/dropdown');
 const SearchFormInteractionsDropdownView = require('../dropdown/search-form-interactions/dropdown.search-form-interactions.view');
+const properties = require('properties');
 
 module.exports = Marionette.LayoutView.extend({
     template: template,
@@ -29,35 +30,60 @@ module.exports = Marionette.LayoutView.extend({
         'click': 'changeView'
     },
     regions: {
-        workspaceActions: '.choice-actions'
+        searchFormActions: '.choice-actions'
+    },
+    initialize: function() {
+        this.listenTo(this.model, 'change:type', this.changeView);
     },
     initialize: function() {
         //TODO Fix this hack
         this.listenTo(this.model, 'change:type', this.changeView);
     },
     onRender: function() {
-        if (this.model.get('type') === 'basic' || this.model.get('type') === 'text' || this.model.get('type') === 'new-form' || this.model.get('type') === 'newResult') {
+        if (this.model.get('type') === 'basic' || this.model.get('type') === 'text' || this.model.get('type') === 'new-form') {
             this.$el.addClass('is-static');
-        } else {
-            this.workspaceActions.show(
-                new SearchFormInteractionsDropdownView({
-                    model: new DropdownModel(),
-                    modelForComponent: this.model,
-                    dropdownCompanionBehaviors: {
-                        navigation: {},
-                    }
-                })
-            );
+        }
+        else if (properties.hasExperimentalEnabled()) {
+            this.searchFormActions.show(new SearchFormInteractionsDropdownView({
+                model: new DropdownModel(),
+                modelForComponent: this.model,
+                collectionWrapperModel: this.options.collectionWrapperModel,
+                queryModel: this.options.queryModel,
+                dropdownCompanionBehaviors: {
+                    navigation: {}
+                }
+            }));
         }
     },
     changeView: function() {
-        switch (this.model.get('type')) {
+        let oldType = this.options.queryModel.get('type');
+        switch(this.model.get('type')) {
+            case 'new-form':
+                this.options.queryModel.set({
+                    type: 'new-form',
+                    associatedFormModel: this.model,
+                    title: this.model.get('name'),
+                    filterTree: this.model.get('filterTemplate'),
+                    accessGroups: this.model.get('accessGroups'),
+                    accessIndividuals: this.model.get('accessIndividuals')
+                });
+                if (oldType === 'new-form') {
+                    this.options.queryModel.trigger('change:type');
+                }
+                user.getQuerySettings().set('type', 'new-form');
+                break;
             case 'basic':
                 this.options.queryModel.set('type', 'basic');
+                if (oldType === 'new-form' || oldType === 'custom') {
+                    this.options.queryModel.set('title', 'Search Name');
+                }
                 user.getQuerySettings().set('type', 'basic');
                 break;
             case 'text':
                 this.options.queryModel.set('type', 'text');
+                if (oldType === 'new-form' || oldType === 'custom') {
+                    this.options.queryModel.set('title', 'Search Name');
+                }
                 user.getQuerySettings().set('type', 'text');
                 break;          
             case 'custom':
@@ -72,22 +98,11 @@ module.exports = Marionette.LayoutView.extend({
                     src: (this.model.get('querySettings') && this.model.get('querySettings').src) || '',
                     federation: (this.model.get('querySettings') && this.model.get('querySettings').federation) || 'enterprise',
                     sorts: sorts,
-                    'detail-level': (this.model.get('querySettings') && this.model.get('querySettings')['detail-level']) || 'All Fields',
+                    'detail-level': (this.model.get('querySettings') && this.model.get('querySettings')['detail-level']) || 'allFields',
                     accessGroups: this.model.get('accessGroups'),
                     accessIndividuals: this.model.get('accessIndividuals')
                 });
-
-                user.getQuerySettings().set({
-                    type: 'custom',
-                    template: this.model.toJSON()
-                });
-
-                this.options.queryModel.set({
-                    type: 'custom',
-                    title: this.model.get('name')
-                });
-
-                if (oldType === 'custom') {
+                if (oldType  === 'custom') {
                     this.options.queryModel.trigger('change:type');
                 }
                 user.getQuerySettings().set('type', 'custom');

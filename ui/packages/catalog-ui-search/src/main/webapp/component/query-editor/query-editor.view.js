@@ -17,7 +17,6 @@ const Marionette = require('marionette');
 const template = require('./query-editor.hbs');
 const CustomElements = require('js/CustomElements');
 const QueryBasic = require('component/query-basic/query-basic.view');
-const QueryResult = require('component/result-form/result-form.view');
 const QueryAdvanced = require('component/query-advanced/query-advanced.view');
 const QueryTitle = require('component/query-title/query-title.view');
 const QueryAdhoc = require('component/query-adhoc/query-adhoc.view');

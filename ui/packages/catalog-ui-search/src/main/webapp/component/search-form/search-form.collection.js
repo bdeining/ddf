@@ -19,6 +19,7 @@ const Backbone = require('backbone');
 const SearchForm = require('./search-form');
 const Common = require('js/Common');
 const user = require('component/singletons/user-instance');
+const properties = require('properties');
 
 const fixFilter = function(filter) {
     if (filter.filters) {
@@ -38,7 +39,7 @@ const fixTemplates = function(templates) {
 let cachedTemplates = [];
 let promiseIsResolved = false;
 
-const templatePromiseSupplier = () => $.ajax({
+const templatePromiseSupplier = () => properties.hasExperimentalEnabled() ? $.ajax({
         type: 'GET',
         context: this,
         url: '/search/catalog/internal/forms/query',
@@ -53,22 +54,25 @@ const templatePromiseSupplier = () => $.ajax({
             let newTemplates = data.filter(
                 incomingTemplate => cachedTemplates.length === 0 || !_.any(cachedTemplates, (cachedTemplate) => cachedTemplate.id === incomingTemplate.id)
             );
-            //Replace updated templates in their corresponding indices (//TODO: Should this just be a backbone collection instead of an array?)
+            //Replace updated templates in their corresponding indices
             _.each(updatedTemplates, 
                 updatedTemplate => cachedTemplates[_.findIndex(cachedTemplates, (cachedTemplate) => cachedTemplate.id === updatedTemplate.id)] = updatedTemplate
             );
             cachedTemplates = cachedTemplates.concat(newTemplates);
             promiseIsResolved = true;
         }
-    });
+    }) : Promise.resolve();
 
 let bootstrapPromise = templatePromiseSupplier();
 
 module.exports = Backbone.AssociatedModel.extend({
     defaults: {
         doneLoading: false,
-        searchForms: [
+        searchForms: properties.hasExperimentalEnabled() ? [
             new SearchForm({type: 'new-form'}), 
+            new SearchForm({type: 'basic'}), 
+            new SearchForm({type: 'text'})
+        ] : [
             new SearchForm({type: 'basic'}), 
             new SearchForm({type: 'text'})
         ]
@@ -95,28 +99,28 @@ module.exports = Backbone.AssociatedModel.extend({
         })
     }],
     addCustomForms: function() {
-        templatePromise.then(() => {
-            if (!this.isDestroyed) {
-                $.each(systemTemplates, (index, value) => {
-                    if (this.checkIfOwnerOrSystem(value)) {
-                        var utcSeconds = value.created / 1000;
-                        var d = new Date(0);
-                        d.setUTCSeconds(utcSeconds);
-                        this.addSearchForm(new SearchForm({
-                            createdOn: Common.getHumanReadableDate(d),
-                            id: value.id,
-                            name: value.title,
-                            type: 'custom',
-                            filterTemplate: value.filterTemplate,
-                            accessIndividuals: value.accessIndividuals,
-                            accessGroups: value.accessGroups,
-                            createdBy: value.creator
-                        }));
-                    }
-                });
-                this.doneLoading();
-            }
-        });
+        if (!this.isDestroyed) {
+            cachedTemplates.forEach(function(value, index) {
+                if (this.checkIfOwnerOrSystem(value)) {
+                    var utcSeconds = value.created / 1000;
+                    var d = new Date(0);
+                    d.setUTCSeconds(utcSeconds);
+                    this.addSearchForm(new SearchForm({
+                        createdOn: Common.getHumanReadableDate(d),
+                        id: value.id,
+                        name: value.title,
+                        description: value.description,
+                        type: 'custom',
+                        filterTemplate: JSON.stringify(value.filterTemplate),
+                        accessIndividuals: value.accessIndividuals,
+                        accessGroups: value.accessGroups,
+                        createdBy: value.creator,
+                        owner: value.owner,
+                        querySettings: value.querySettings
+                    }));
+                }
+            }.bind(this));
+        }
     },
     getCollection: function() {
         return this.get('searchForms');
@@ -136,7 +140,7 @@ module.exports = Backbone.AssociatedModel.extend({
         this.set('doneLoading', true);
     },
     deleteCachedTemplateById: function(id) {
-        cachedTemplates = _.filter(cachedTemplates, function(template) {
+        cachedTemplates =  _.filter(cachedTemplates, function(template) {
             return template.id !== id
         });
     }

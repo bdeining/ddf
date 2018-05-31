@@ -18,7 +18,6 @@ const Marionette = require('marionette');
 const template = require('./query-add.hbs');
 const CustomElements = require('js/CustomElements');
 const QueryBasic = require('component/query-basic/query-basic.view');
-const QueryResult = require('component/result-form/result-form.view');
 const QueryAdvanced = require('component/query-advanced/query-advanced.view');
 const QueryTitle = require('component/query-title/query-title.view');
 const QueryAdhoc = require('component/query-adhoc/query-adhoc.view');
@@ -30,9 +29,7 @@ const wreqr = require('wreqr');
 const user = require('component/singletons/user-instance');
 const cql = require('js/cql');
 const announcement = require('component/announcement');
-const lightboxResultInstance = require('component/lightbox/result/lightbox.result.view');
 const SearchFormModel = require('component/search-form/search-form.js');
-const lightboxInstance = lightboxResultInstance.generateNewLightbox();
 
 
 module.exports = Marionette.LayoutView.extend({
@@ -197,7 +194,7 @@ module.exports = Marionette.LayoutView.extend({
                 }),
                 'change:choice',
                 function (confirmation) {
-                    var choice = confirmation.get('choice');
+                   var choice = confirmation.get('choice');
                     if (choice === true) {
                         var loadingview = new LoadingView();
                         store.get('workspaces').once('sync', function(workspace, resp, options) {
@@ -219,16 +216,16 @@ module.exports = Marionette.LayoutView.extend({
         }
     },
     getQueryAsQueryTemplate: function() {
-        let formParameters = this.queryContent.currentView.serializeTemplateParameters();
+        const formModel = this.model.get('associatedFormModel') || new SearchFormModel();
+        const formParameters = this.queryContent.currentView.serializeTemplateParameters();
         let filterTree = cql.simplify(formParameters.filterTree || {});
         let filterSettings = formParameters.filterSettings || {};
-        let formModel = this.model.get('associatedFormModel') || new SearchFormModel();
         if (filterTree.filters && filterTree.filters.length === 1) {
             filterTree = filterTree.filters[0];
         }
         filterSettings.sorts = filterSettings.sorts.filter(sort => sort.attribute && sort.direction)
             .map(sort => sort.attribute + ',' + sort.direction);
-        let filterTemplate = {
+        return {
             filterTemplate: filterTree,
             accessIndividuals: formModel.get('accessIndividuals'),
             accessGroups: formModel.get('accessGroups'),
@@ -240,12 +237,9 @@ module.exports = Marionette.LayoutView.extend({
             owner: formModel.get('owner'),
             querySettings: filterSettings
         }
-        return filterTemplate;
     },
     saveTemplateToBackend: function() {
         let loadingView = new LoadingView();
-        let _this = this;
-        let _user = user;
         $.ajax({
             url: '/search/catalog/internal/forms/query',
             data: JSON.stringify(this.getQueryAsQueryTemplate()),
@@ -253,43 +247,12 @@ module.exports = Marionette.LayoutView.extend({
             contentType: 'application/json',
             customErrorHandling: true
         })
-        .done((data, textStatus, jqxhr) => {
-            announcement.announce({
-                title: 'Saved!',
-                message: 'Search form has been saved.',
-                type: 'success'
-            });
-
-            let queryTemplate = _this.getQueryAsQueryTemplate();
-            let sorts = queryTemplate['querySettings'] && queryTemplate['querySettings'].sorts;
-
-            if (sorts) {
-                sorts = sorts.map(sort => ({ attribute: sort.split(',')[0], direction: sort.split(',')[1] }));
-
-            queryTemplate = {
-                type: 'custom',
-                name: queryTemplate['title'],
-                filterTemplate: JSON.stringify(queryTemplate['filterTemplate']),
-                src: (queryTemplate['querySettings'] && queryTemplate['querySettings'].src) || '',
-                federation: (queryTemplate['querySettings'] && queryTemplate['querySettings'].federation) || 'enterprise',
-                querySettings: sorts, 
-                'detail-level': (queryTemplate['querySettings'] && queryTemplate['querySettings']['detail-level']) || 'All Fields',
-                accessGroups: queryTemplate['accessGroups'],
-                accessIndividuals: queryTemplate['accessIndividuals']
-            };
-
-            _user.getQuerySettings().set({
-                template: queryTemplate
-            });
-
-            _user.savePreferences();
-        }})
         .fail((jqxhr, textStatus, errorThrown) => {
             announcement.announce({
-                title: 'Error!',
-                message: 'Search form failed to be saved.',
+                title: 'Search Form Failed to be Saved',
+                message: jqxhr.responseJSON.message,
                 type: 'error'
-            });
+            }, 2500);
         })
         .always(() => {
             loadingView.remove();

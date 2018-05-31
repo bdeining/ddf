@@ -68,12 +68,26 @@ define([
             this.setupSrcDropdown();
             this.setupScheduling();
             this.turnOnEditing();
-            this.renderResultForms(this.resultFormCollection.filteredList)
-        },
-        renderResultForms: function(resultTemplates){
-            if(resultTemplates == undefined)
-            {
-                resultTemplates = [];
+
+            let resultTemplates = ResultForm.getResultTemplatesProperties();
+            let lastIndex = resultTemplates.length - 1;
+            if (resultTemplates) {
+                let detailLevelProperty = new Property({
+                    label: 'Detail Level',
+                    enum: ResultForm.getResultTemplatesProperties(),
+                    value: [this.model.get('detail-level') || (resultTemplates && resultTemplates[lastIndex] && resultTemplates[lastIndex].value)],
+                    id: 'Detail Level'
+                });
+                this.listenTo(detailLevelProperty, 'change:value', this.handleChangeDetailLevel);
+                this.resultForm.show(new PropertyView({
+                    model: detailLevelProperty
+                }));
+                this.resultForm.currentView.turnOnEditing();
+            }
+
+            const extensions = this.getExtensions()
+            if (extensions !== undefined) {
+                this.extensions.show(extensions)
             }
             resultTemplates.push({
                 label: 'All Fields',
@@ -170,7 +184,7 @@ define([
             }
             const sorts = this.settingsSortField.currentView.collection.toJSON();
             let detailLevel = this.resultForm.currentView && this.resultForm.currentView.model.get('value')[0]
-            if (detailLevel && detailLevel === 'All Fields') {
+            if (detailLevel && detailLevel === 'allFields') {
                 detailLevel = undefined;
             }
             const scheduleModel = this.settingsSchedule.currentView.getSchedulingConfiguration();
