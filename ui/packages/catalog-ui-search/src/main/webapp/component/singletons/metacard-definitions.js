@@ -186,7 +186,7 @@ define([
         },
         metacardDefinitions: [],
         sortedMetacardTypes: [],
-        metacardTypes: Object.assign({}, metacardStartingTypes),
+        metacardTypes: _.extendOwn({}, metacardStartingTypes),
         validation: {
         },
         enums: {
