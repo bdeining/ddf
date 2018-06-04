@@ -22,28 +22,6 @@
   let resultFormCollection = new ResultFormCollection();
   return new (Backbone.Model.extend({
       initialize: function () {
-          resultTemplatePromise.then(() => {
-              if (!this.isDestroyed) {
-                  const customResultTemplates = _.map(resultTemplates, function(resultForm) {
-                      return {
-                        label: resultForm.title,
-                        value: resultForm.id,
-                        id: resultForm.id,
-                        descriptors: resultForm.descriptors,
-                        description: resultForm.description
-                      };
-                  });
-
-                  customResultTemplates.push({
-                    label: 'All Fields',
-                    value: 'allFields',
-                    id: 'allFields',
-                    descriptors: [],
-                    description: 'All Fields'
-                  });
-                  resultTemplateProperties = customResultTemplates;
-              }
-          });
       },
       getResultCollection: function() {
         return resultFormCollection;

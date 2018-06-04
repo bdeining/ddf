@@ -43,7 +43,6 @@ module.exports = Marionette.LayoutView.extend({
     basicAttribute: '.basic-type',
     basicAttributeSpecific: '.basic-type-specific'
   },
-  ui: {},
   filter: undefined,
   onBeforeShow: function () {
     this.model = this.model._cloneOf ? store.getQueryById(this.model._cloneOf) : this.model
@@ -54,12 +53,12 @@ module.exports = Marionette.LayoutView.extend({
     this.edit()
   },
   setupAttributeSpecific: function () {
-    let currentValue = this.model.get('descriptors') !== '{}' || this.model.get('descriptors') !== '[]' ? this.model.get('descriptors') : []
+    let currentValue = this.model.get('descriptors') !== {} || this.model.get('descriptors') !== [] ? this.model.get('descriptors') : []
     let excludedList = metacardDefinitions.getMetacardStartingTypes();
     this.basicAttributeSpecific.show(new PropertyView({
       model: new Property({
         enumFiltering: true,
-        showValidationIssues: false,
+        showValidationIssues: true,
         enumMulti: true,
         enum: _.filter(metacardDefinitions.sortedMetacardTypes, function (type) {
           return !metacardDefinitions.isHiddenTypeExceptThumbnail(type.id)
@@ -120,6 +119,14 @@ module.exports = Marionette.LayoutView.extend({
     Loading.beginLoading(view)
     let descriptors = this.basicAttributeSpecific.currentView.model.get('value')
     let title = this.basicTitle.currentView.model.getValue()[0]
+    if(title === '')
+    {
+      let $validationElement = this.basicTitle.currentView.$el.find('> .property-label .property-validation')
+      $validationElement.removeClass('is-hidden').removeClass('is-warning').addClass('is-error')
+      $validationElement.attr('title', "Name field cannot be blank")
+      Loading.endLoading(view)
+      return 
+    }
     let description = this.basicDescription.currentView.model.getValue()[0]
     let id = this.model.get('formId')
     let templatePerms = {
@@ -140,7 +147,9 @@ module.exports = Marionette.LayoutView.extend({
       data: JSON.stringify(templatePerms),
       context: this,
       success: function (data) {
-        this.message('Success!', 'Saved Result Form', 'success')
+        ResultFormCollection.getResultCollection().filteredList = _.filter(ResultFormCollection.getResultCollection().filteredList, function(template) {
+          return template.id !== templatePerms.id
+        })
         ResultFormCollection.getResultCollection().filteredList.push({
             id: templatePerms.id,
             label: templatePerms.title,
