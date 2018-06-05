@@ -23,23 +23,21 @@ import ddf.security.Subject;
 import ddf.security.SubjectIdentity;
 import ddf.security.SubjectUtils;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Base64;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.shiro.SecurityUtils;
 import org.boon.json.JsonFactory;
 import org.codice.ddf.catalog.ui.metacard.EntityTooLargeException;
 import org.codice.ddf.catalog.ui.util.EndpointUtil;
-import org.codice.ddf.persistence.PersistenceException;
-import org.codice.ddf.persistence.PersistentItem;
+import org.codice.ddf.catalog.ui.util.PersistentStoreUtil;
 import org.codice.ddf.persistence.PersistentStore;
-import org.codice.ddf.persistence.PersistentStore.PersistenceType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.servlet.SparkApplication;
@@ -90,7 +88,10 @@ public class UserApplication implements SparkApplication {
             preferences = new HashMap<>();
           }
 
-          setUserPreferences(subject, preferences);
+          handleServerGeneratedAlerts(
+              preferences, (Map<String, Object>) getSubjectAttributes(subject).get("preferences"));
+          PersistentStoreUtil.setSubjectPreferences(
+              persistentStore, subject, subjectIdentity, preferences);
 
           return preferences;
         },
@@ -103,52 +104,36 @@ public class UserApplication implements SparkApplication {
     exception(RuntimeException.class, endpointUtil::handleRuntimeException);
   }
 
-  private void setUserPreferences(Subject subject, Map<String, Object> preferences) {
-    String json = JsonFactory.create().toJson(preferences);
-
-    LOGGER.trace("preferences JSON text:\n {}", json);
-
-    String userid = subjectIdentity.getUniqueIdentifier(subject);
-    PersistentItem item = new PersistentItem();
-    item.addIdProperty(userid);
-    item.addProperty("user", userid);
-    item.addProperty(
-        "preferences_json",
-        "_bin",
-        Base64.getEncoder().encodeToString(json.getBytes(Charset.defaultCharset())));
-
-    try {
-      persistentStore.add(PersistenceType.PREFERENCES_TYPE.toString(), item);
-    } catch (PersistenceException e) {
-      LOGGER.info(
-          "PersistenceException while trying to persist preferences for user {}", userid, e);
+  private void handleServerGeneratedAlerts(Map newPreferences, Map oldPreferences) {
+    final List<Map<String, Object>> newAlerts;
+    if (CollectionUtils.isEmpty((List<Map<String, Object>>) newPreferences.get("alerts"))) {
+      newAlerts = new ArrayList<>();
+    } else {
+      newAlerts = (List<Map<String, Object>>) newPreferences.get("alerts");
     }
+
+    List<Map<String, Object>> oldAlerts = (List<Map<String, Object>>) oldPreferences.get("alerts");
+    if (oldAlerts == null) {
+      oldAlerts = new ArrayList<>();
+    }
+
+    List<Map<String, Object>> alertsToPreserve =
+        oldAlerts
+            .stream()
+            .filter(
+                (alert) ->
+                    newAlerts
+                        .stream()
+                        .noneMatch((oldAlert) -> oldAlert.get("id").equals(alert.get("id"))))
+            .filter((alert) -> (Boolean) alert.getOrDefault("serverGenerated", false))
+            .collect(Collectors.toList());
+
+    newAlerts.addAll(alertsToPreserve);
+    newPreferences.put("alerts", newAlerts);
   }
 
   private Set<String> getSubjectRoles(Subject subject) {
     return new TreeSet<>(SubjectUtils.getAttribute(subject, Constants.ROLES_CLAIM_URI));
-  }
-
-  private Map getSubjectPreferences(Subject subject) {
-    String userid = subjectIdentity.getUniqueIdentifier(subject);
-
-    try {
-      String filter = String.format("user = '%s'", userid);
-      List<Map<String, Object>> preferencesList =
-          persistentStore.get(PersistenceType.PREFERENCES_TYPE.toString(), filter);
-      if (preferencesList.size() == 1) {
-        byte[] json = (byte[]) preferencesList.get(0).get("preferences_json_bin");
-
-        return JsonFactory.create().parser().parseMap(new String(json, Charset.defaultCharset()));
-      }
-    } catch (PersistenceException e) {
-      LOGGER.info(
-          "PersistenceException while trying to retrieve persisted preferences for user {}",
-          userid,
-          e);
-    }
-
-    return Collections.emptyMap();
   }
 
   private Map<String, Object> getSubjectAttributes(Subject subject) {
@@ -159,7 +144,9 @@ public class UserApplication implements SparkApplication {
             "username", SubjectUtils.getName(subject),
             "isGuest", subject.isGuest(),
             "roles", getSubjectRoles(subject),
-            "preferences", getSubjectPreferences(subject));
+            "preferences",
+                PersistentStoreUtil.getSubjectPreferences(
+                    persistentStore, subject, subjectIdentity));
     // @formatter:on
 
     String email = SubjectUtils.getEmailAddress(subject);

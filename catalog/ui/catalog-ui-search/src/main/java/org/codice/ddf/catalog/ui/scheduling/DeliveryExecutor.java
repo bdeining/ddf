@@ -65,8 +65,9 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
 
   private final Gson gson;
 
-  private final String metacardId;
-  private final String metacardTitle;
+  private final String workspaceMetacardId;
+  private final String queryMetacardId;
+  private final String queryMetacardTitle;
   private final Collection<String> scheduleDeliveryIDs;
   private final String scheduleUserID;
   private final Map<String, Object> scheduleData;
@@ -94,8 +95,9 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
       PersistentStore persistentStore,
       Fallible<List<QueryCourier>> serviceReferences,
       IgniteCache<String, Map<String, String>> queryCache,
-      String deliveryMetacardId,
-      String deliveryMetacardTitle,
+      String workspaceMetacardId,
+      String queryMetacardId,
+      String queryMetacardTitle,
       Collection<String> scheduleDeliveryIDs,
       String scheduleUserID,
       boolean delayed,
@@ -105,8 +107,9 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
     this.persistentStore = persistentStore;
     this.serviceReferences = serviceReferences;
     this.queryCache = queryCache;
-    this.metacardId = deliveryMetacardId;
-    this.metacardTitle = deliveryMetacardTitle;
+    this.workspaceMetacardId = workspaceMetacardId;
+    this.queryMetacardId = queryMetacardId;
+    this.queryMetacardTitle = queryMetacardTitle;
     this.scheduleDeliveryIDs = scheduleDeliveryIDs;
     this.scheduleUserID = scheduleUserID;
     this.hours = hours;
@@ -262,6 +265,8 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
     selectedServices
         .get(0)
         .deliver(
+            workspaceMetacardId,
+            queryMetacardId,
             queryMetacardTitle,
             results,
             userID,
@@ -280,7 +285,7 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
 
   private void deliverQueryResults() {
     ofNullable(
-            queryCache.get(metacardId),
+            queryCache.get(queryMetacardId),
             "Query result cache does not appear to exist, no delivery will be attempted")
         .ifValue(
             resultMap ->
@@ -358,7 +363,7 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
                                 deliveryInfo ->
                                     deliver(
                                             deliveryInfo.getLeft(),
-                                            metacardTitle,
+                                            queryMetacardTitle,
                                             entryValue,
                                             scheduleUserID,
                                             deliveryId,
@@ -370,19 +375,19 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
 
   private Fallible removeResultCacheEntry(final String resultCacheKey) {
     return ofNullable(
-            queryCache.get(metacardId),
+            queryCache.get(queryMetacardId),
             "Query result cache for metacard id \"%s\" appears to be null",
-            metacardId)
+            queryMetacardId)
         .ifValue(
             cacheMap -> {
               cacheMap.remove(resultCacheKey);
-              queryCache.put(metacardId, cacheMap);
+              queryCache.put(queryMetacardId, cacheMap);
             })
         .elseDo(
             error ->
                 LOGGER.info(
                     "Query result cache for metacard id {} has no entry for {} : {}",
-                    metacardId,
+                    queryMetacardId,
                     resultCacheKey,
                     error));
   }
@@ -391,16 +396,16 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
     unwrapCache()
         .ifValue(
             deliveries -> {
-              if (deliveries.containsKey(metacardId)
-                  && (job == null || deliveries.get(metacardId).equals(job.id()))) {
-                deliveries.remove(metacardId);
+              if (deliveries.containsKey(queryMetacardId)
+                  && (job == null || deliveries.get(queryMetacardId).equals(job.id()))) {
+                deliveries.remove(queryMetacardId);
               }
             })
         .elseDo(
             error ->
                 LOGGER.warn(
                     "When cancelling a completed delivery scheduled job \"%s\" for metacard \"%s\", the delivery cache could not be found to remove the job",
-                    job == null ? "null" : job.id(), metacardId));
+                    job == null ? "null" : job.id(), queryMetacardId));
 
     if (job != null) {
       job.cancel();
@@ -413,20 +418,20 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
       LOGGER.debug(
           "Entering {}.run(). Delivering metacard data for {}...",
           DeliveryExecutor.class.getName(),
-          metacardId);
+          queryMetacardId);
 
       final boolean isCanceled =
           unwrapCache()
               .map(
                   deliveries ->
-                      !deliveries.containsKey(metacardId)
-                          || job != null && !deliveries.get(metacardId).contains(job.id()))
+                      !deliveries.containsKey(queryMetacardId)
+                          || job != null && !deliveries.get(queryMetacardId).contains(job.id()))
               .orDo(
                   error -> {
                     LOGGER.warn(
                         String.format(
                             "Delivery data could not be found when the delivery via metacard \"%s\" ran:\nThis scheduled delivery might not have been canceled by the user: %s",
-                            metacardId, error));
+                            queryMetacardId, error));
 
                     return false;
                   });
@@ -458,7 +463,9 @@ class DeliveryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFut
       }
 
       LOGGER.debug(
-          "Running delivery for metacard with id: {} and title {}...", metacardId, metacardTitle);
+          "Running delivery for metacard with id: {} and title {}...",
+          queryMetacardId,
+          queryMetacardTitle);
 
       deliverQueryResults();
 

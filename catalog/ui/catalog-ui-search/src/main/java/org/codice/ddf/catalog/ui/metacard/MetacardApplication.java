@@ -930,6 +930,8 @@ public class MetacardApplication implements SparkApplication {
                           extras.getOrDefault(deliveryId, Collections.emptyMap()));
 
                   queryDeliveryService.deliver(
+                      "",
+                      "",
                       metacardId,
                       queryResponse.getResults(),
                       username,

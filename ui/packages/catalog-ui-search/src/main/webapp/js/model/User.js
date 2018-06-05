@@ -133,8 +133,8 @@ define([
                 homeSort: 'Last modified',
                 homeDisplay: 'Grid',
                 alerts: [],
-                alertPersistance: false, // don't persist across sessions by default
-                alertExpiration: 86400000, // 1 day
+                alertPersistance: true, // persist across sessions by default
+                alertExpiration: 31536000000, // 1 year
                 resultBlacklist: [],
                 visualization: '3dmap',
                 columnHide: [],
