@@ -22,8 +22,9 @@ define([
     'js/CustomElements',
     'js/store',
     'js/Common',
-    'component/singletons/user-instance'
-], function (wreqr, Marionette, _, $, template, CustomElements, store, Common, user) {
+    'component/singletons/user-instance',
+    'moment'
+], function (wreqr, Marionette, _, $, template, CustomElements, store, Common, user, moment) {
 
     return Marionette.ItemView.extend({
         template: template,
@@ -48,6 +49,10 @@ define([
             if (query){
                 this.listenTo(query, 'change', this.render);
             }
+        },
+        onRender: function() {
+            let $detailsTime = this.$el.find('.details-time');
+            $detailsTime.attr('title', moment(this.model.get('when')).toISOString());
         },
         removeModel: function(){
             this.$el.toggleClass('is-destroyed', true);

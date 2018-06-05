@@ -25,14 +25,13 @@ define([
     'component/property/property.view',
     'component/property/property',
     'component/dropdown/dropdown.view',
-    'component/radio/radio.view',
     'component/singletons/user-instance',
     'js/model/QueryDeliverySchedule',
     'component/query-delivery-schedule/query-delivery-schedule.view',
     'moment',
     'js/Common'
 ], function(Marionette, Backbone, _, $, template, CustomElements, store, properties, PropertyView, Property,
-    DropdownView, RadioView, user, QueryDeliveryScheduleModel, QueryDeliveryScheduleView, Moment, Common) {
+    DropdownView, user, QueryDeliveryScheduleModel, QueryDeliveryScheduleView, Moment, Common) {
 
     function getHumanReadableDuration(milliseconds) {
         var duration = Moment.duration(milliseconds);

@@ -17,22 +17,27 @@ import static ddf.util.Fallible.error;
 import static ddf.util.Fallible.success;
 
 import com.google.common.collect.ImmutableMap;
-import ddf.catalog.data.Attribute;
-import ddf.catalog.data.AttributeDescriptor;
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.Result;
 import ddf.util.MapUtils;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import org.codice.ddf.catalog.ui.util.PersistentStoreUtil;
+import org.codice.ddf.configuration.SystemBaseUrl;
+import org.codice.ddf.persistence.PersistentStore;
 import org.codice.ddf.platform.email.SmtpClient;
+import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -54,11 +59,15 @@ public class EmailQueryCourier implements QueryCourier {
 
   private String senderEmail;
 
+  private final PersistentStore persistentStore;
+
   private final SmtpClient smtpClient;
 
-  public EmailQueryCourier(String senderEmail, SmtpClient smtpClient) {
+  public EmailQueryCourier(
+      String senderEmail, SmtpClient smtpClient, PersistentStore persistentStore) {
     this.senderEmail = senderEmail;
     this.smtpClient = smtpClient;
+    this.persistentStore = persistentStore;
   }
 
   @Override
@@ -78,6 +87,8 @@ public class EmailQueryCourier implements QueryCourier {
 
   @Override
   public void deliver(
+      final String workspaceMetacardId,
+      final String queryMetacardId,
       final String queryMetacardTitle,
       final List<Result> queryResults,
       String userID,
@@ -113,22 +124,15 @@ public class EmailQueryCourier implements QueryCourier {
                     exception.getMessage());
               }
 
-              StringBuilder emailBody =
-                  new StringBuilder(
-                      String.format("Here are the results for query %s:", queryMetacardTitle));
-              for (Result queryResult : queryResults) {
-                emailBody.append("\n\n");
+              String alertId = UUID.randomUUID().toString();
+              String alertUrl =
+                  SystemBaseUrl.constructUrl(
+                      String.format("/search/catalog/#alerts/%s", alertId).toString());
 
-                final Metacard metacard = queryResult.getMetacard();
-                for (AttributeDescriptor attributeDescriptor :
-                    metacard.getMetacardType().getAttributeDescriptors()) {
-                  final String key = attributeDescriptor.getName();
-                  final Attribute attribute = metacard.getAttribute(key);
-                  if (attribute != null) {
-                    emailBody.append(String.format("\n%s: %s", key, attribute.getValue()));
-                  }
-                }
-              }
+              String emailBody =
+                  String.format(
+                      "Your results are ready for query %s. <br><a href='%s'>Link to results</a>",
+                      queryMetacardTitle, alertUrl);
 
               final Session smtpSession = smtpClient.createSession();
               final MimeMessage message = new MimeMessage(smtpSession);
@@ -138,7 +142,7 @@ public class EmailQueryCourier implements QueryCourier {
                 message.addRecipient(Message.RecipientType.TO, destinationAddress);
                 message.setSubject(
                     String.format("Scheduled query results for \"%s\"", queryMetacardTitle));
-                message.setText(emailBody.toString());
+                message.setContent(emailBody, "text/html; charset=utf-8");
               } catch (MessagingException exception) {
                 return error(
                     "There was a problem assembling an email message for scheduled query results: %s",
@@ -146,6 +150,7 @@ public class EmailQueryCourier implements QueryCourier {
               }
 
               smtpClient.send(message);
+              addToUserAlerts(workspaceMetacardId, queryMetacardId, userID, alertId, queryResults);
 
               return success();
             })
@@ -156,5 +161,37 @@ public class EmailQueryCourier implements QueryCourier {
   @SuppressWarnings("unused")
   public void setSenderEmail(String senderEmail) {
     this.senderEmail = senderEmail;
+  }
+
+  private void addToUserAlerts(
+      final String workspaceMetacardId,
+      final String queryMetacardId,
+      final String userId,
+      final String alertId,
+      final List<Result> queryResults) {
+    Map<String, Object> preferences =
+        PersistentStoreUtil.getUserPreferences(persistentStore, userId);
+    List<Map<String, Object>> alerts = (List<Map<String, Object>>) preferences.get("alerts");
+    if (alerts.isEmpty()) {
+      alerts = new ArrayList<>();
+    }
+    Map<String, Object> generatedAlert =
+        ImmutableMap.<String, Object>builder()
+            .put("queryId", queryMetacardId)
+            .put("workspaceId", workspaceMetacardId)
+            .put("when", DateTime.now().toInstant().getMillis())
+            .put(
+                "metacardIds",
+                queryResults
+                    .stream()
+                    .map(Result::getMetacard)
+                    .map(Metacard::getId)
+                    .collect(Collectors.toList()))
+            .put("id", alertId)
+            .put("serverGenerated", true)
+            .build();
+    alerts.add(generatedAlert);
+    preferences.put("alerts", alerts);
+    PersistentStoreUtil.setUserPreferences(persistentStore, userId, preferences);
   }
 }

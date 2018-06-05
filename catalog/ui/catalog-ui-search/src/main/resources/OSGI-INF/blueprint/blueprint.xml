@@ -460,6 +460,7 @@
 
         <argument value="donotreply@example.com"/>
         <argument ref="smtpClient"/>
+        <argument ref="persistentStore"/>
     </bean>
 
     <service ref="emailQueryCourier" interface="org.codice.ddf.catalog.ui.scheduling.subscribers.QueryCourier"/>

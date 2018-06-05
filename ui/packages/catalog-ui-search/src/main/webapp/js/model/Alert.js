@@ -22,12 +22,14 @@ define([
             queryId: undefined,
             workspaceId: undefined,
             when: undefined,
-            metacardIds: []
+            metacardIds: [],
+            serverGenerated: false
         },
         initialize: function () {
             if (!this.id){
                 this.set('id', Common.generateUUID());
             }
+            this.set('serverGenerated', false);
         },
         getTimeComparator: function(){
             return this.get('when');

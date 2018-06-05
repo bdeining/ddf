@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -426,6 +426,7 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
 
   private void readScheduleDataAndScheduleDelivery(
       final IgniteScheduler scheduler,
+      final String workspaceMetacardId,
       final String queryMetacardId,
       final String queryMetacardTitle,
       final Map<String, Object> deliveryData,
@@ -451,6 +452,7 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
                 persistentStore,
                 serviceReferences,
                 cache,
+                workspaceMetacardId,
                 queryMetacardId,
                 queryMetacardTitle,
                 deliveryIds,
@@ -471,7 +473,8 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
         partialDelivery);
   }
 
-  private Fallible<?> readQueryMetacardAndSchedule(final Map<String, Object> queryMetacardData) {
+  private Fallible<?> readQueryMetacardAndSchedule(
+      final Map<String, Object> queryMetacardData, final String workspaceMetacardID) {
     return getScheduler()
         .tryMap(
             scheduler ->
@@ -499,6 +502,7 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
                             scheduleData);
                         readScheduleDataAndScheduleDelivery(
                             scheduler,
+                            workspaceMetacardID,
                             queryMetacardID,
                             queryMetacardTitle,
                             deliveryData,
@@ -528,7 +532,7 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
   }
 
   private Fallible<?> readQueryMetacardAndCancelSchedule(
-      final Map<String, Object> queryMetacardData) {
+      final Map<String, Object> queryMetacardData, final String workspaceMetacardId) {
     return MapUtils.tryGetAndRun(
         queryMetacardData,
         Metacard.ID,
@@ -537,7 +541,8 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
   }
 
   private Fallible<?> processMetacard(
-      Metacard workspaceMetacard, Function<Map<String, Object>, Fallible<?>> metacardAction) {
+      Metacard workspaceMetacard,
+      BiFunction<Map<String, Object>, String, Fallible<?>> metacardAction) {
     if (!WorkspaceMetacardImpl.isWorkspaceMetacard(workspaceMetacard)) {
       return success();
     }
@@ -561,7 +566,8 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
                         return success();
                       }
 
-                      return metacardAction.apply(queryMetacardData);
+                      return metacardAction.apply(
+                          queryMetacardData, (String) workspaceMetacardData.get(Metacard.ID));
                     }));
   }
 
