@@ -28,20 +28,7 @@
     url: '/search/catalog/internal/forms/query',
     contentType: 'application/json',
     success: function (data) {
-        //Find templates with the same id but different property maps (because we should trust the server)
-        let updatedTemplates = data.filter(
-            incomingTemplate => _.any(sharedTemplates, (cachedTemplate) => cachedTemplate.id === incomingTemplate.id && !_.isEqual(cachedTemplate, incomingTemplate))
-        );
-        //Find templates that are new
-        let newTemplates = data.filter(
-            incomingTemplate => sharedTemplates.length === 0 || !_.any(sharedTemplates, (cachedTemplate) => cachedTemplate.id === incomingTemplate.id)
-        );
-        //Replace updated templates in their corresponding indices (//TODO: Should this just be a backbone collection instead of an array?)
-        _.each(updatedTemplates, 
-            updatedTemplate => sharedTemplates[_.findIndex(sharedTemplates, (cachedTemplate) => cachedTemplate.id === updatedTemplate.id)] = updatedTemplate
-        );
-
-        sharedTemplates = sharedTemplates.concat(newTemplates);
+        sharedTemplates = data;
         promiseIsResolved = true;
     }
 });
@@ -66,31 +53,35 @@ let bootstrapPromise = sharedSearchFormPromise();
         })
     }],
    addMySharedForms: function() {
-       templatePromise.then(() => {
-            if (!this.isDestroyed){
-                sharedTemplates.forEach((value, index) => {
-                    if (this.checkIfShareable(value)) {
-                        let utcSeconds = value.created / 1000;
-                        let d = new Date(0);
-                        d.setUTCSeconds(utcSeconds);
-                        this.addSearchForm(new SearchForm({
-                            createdOn: Common.getHumanReadableDate(d),
-                            id: value.id,
-                            name: value.title,
-                            description: value.description,
-                            type: 'custom',
-                            filterTemplate: JSON.stringify(value.filterTemplate),
-                            accessIndividuals: value.accessIndividuals,
-                            accessGroups: value.accessGroups,
-                            createdBy: value.creator,
-                            owner: value.owner,
-                            querySettings: value.querySettings
-                        }));
-                    }
-                });
-                this.doneLoading();
-            }
-       });
+    if (!this.isDestroyed){
+        if (promiseIsResolved === true) {
+            promiseIsResolved = false;
+            bootstrapPromise = new sharedSearchFormPromise();
+        }
+        bootstrapPromise.then(() => {
+            $.each(sharedTemplates, (index, value) => {
+                if (this.checkIfShareable(value)) {
+                    let utcSeconds = value.created / 1000;
+                    let d = new Date(0);
+                    d.setUTCSeconds(utcSeconds);
+                    this.addSearchForm(new SearchForm({
+                        createdOn: Common.getHumanReadableDate(d),
+                        id: value.id,
+                        name: value.title,
+                        description: value.description,
+                        type: 'custom',
+                        filterTemplate: JSON.stringify(value.filterTemplate),
+                        accessIndividuals: value.accessIndividuals,
+                        accessGroups: value.accessGroups,
+                        createdBy: value.creator,
+                        owner: value.owner,
+                        querySettings: value.querySettings
+                    }));
+                }
+            });
+            this.doneLoading();
+        })
+    };
    },
    checkIfShareable: function(template) {
        if (this.checkIfInGroup(template) || this.checkIfInIndividiuals(template)) {
