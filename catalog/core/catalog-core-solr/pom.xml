@@ -147,6 +147,10 @@
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
+      <dependency>
+        <groupId>ddf.catalog.core</groupId>
+        <artifactId>catalog-core-api-impl</artifactId>
+      </dependency>
     </dependencies>
     <build>
         <resources>

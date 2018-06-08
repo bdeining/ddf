@@ -82,6 +82,8 @@ public class SolrCache implements SolrCacheMBean {
 
   private long expirationAgeInMinutes = TimeUnit.DAYS.toMinutes(7);
 
+  private List<String> anyTextAttributes = new ArrayList<>();
+
   /**
    * Constructor.
    *
@@ -276,6 +278,17 @@ public class SolrCache implements SolrCacheMBean {
 
     SourceResponse response = solrClientAdaptor.getSolrMetacardClient().query(queryRequest);
     return getMetacardsFromResponse(response);
+  }
+
+  public void setAnyTextAttributes(List<String> anyTextAttributes) {
+    this.anyTextAttributes.clear();
+    if (CollectionUtils.isNotEmpty(anyTextAttributes)) {
+      this.anyTextAttributes.addAll(anyTextAttributes);
+    }
+    if (solrClientAdaptor.getSolrMetacardClient() instanceof CacheSolrMetacardClient) {
+      ((CacheSolrMetacardClient) solrClientAdaptor.getSolrMetacardClient())
+          .setAnyTextAttributes(anyTextAttributes);
+    }
   }
 
   Set<ContentType> getContentTypes() {

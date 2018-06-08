@@ -32,6 +32,9 @@ import ddf.catalog.source.UnsupportedQueryException;
 import ddf.catalog.util.impl.MaskableImpl;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -83,9 +86,11 @@ public abstract class RemoteSolrCatalogProvider extends MaskableImpl implements 
 
   private SolrFilterDelegateFactory solrFilterDelegateFactory;
 
-  private DynamicSchemaResolver resolver;
+  protected DynamicSchemaResolver resolver;
 
   private Future<SolrClient> clientFuture;
+
+  protected List<String> anyTextAttributes = new ArrayList<>();
 
   /**
    * Constructor.
@@ -108,7 +113,7 @@ public abstract class RemoteSolrCatalogProvider extends MaskableImpl implements 
     this.filterAdapter = filterAdapter;
     this.client = client;
     this.solrFilterDelegateFactory = solrFilterDelegateFactory;
-    this.resolver = (resolver == null) ? new DynamicSchemaResolver() : resolver;
+    this.resolver = resolver;
   }
 
   /**
@@ -142,6 +147,14 @@ public abstract class RemoteSolrCatalogProvider extends MaskableImpl implements 
   public void maskId(String id) {
     super.maskId(id);
     provider.maskId(id);
+  }
+
+  protected void init() {
+    if (resolver == null) {
+      resolver = new DynamicSchemaResolver(anyTextAttributes, Collections.emptyList());
+    }
+    this.provider =
+        new SolrCatalogProvider(getClient(), filterAdapter, solrFilterDelegateFactory, resolver);
   }
 
   /**
@@ -304,8 +317,7 @@ public abstract class RemoteSolrCatalogProvider extends MaskableImpl implements 
     }
 
     if (provider instanceof UnavailableSolrCatalogProvider) {
-      provider =
-          new SolrCatalogProvider(getClient(), filterAdapter, solrFilterDelegateFactory, resolver);
+      init();
     }
 
     provider.maskId(getId());
