@@ -54,6 +54,13 @@
             description="The interval (in minutes) at which to execute successive source polling. Must be a positive, nonzero integer."/>
     </OCD>
 
+    <OCD name="Solr Cache" id="ddf.catalog.cache.solr.impl.SolrCache">
+        <AD
+          description="Optional. Specify a list of attributes that should be used for anyText queries instead of the default of all STRING attributes. This is a whitelist of attributes."
+          name="AnyText Query Attributes" id="anyTextAttributes" required="true"
+          type="String" default="" cardinality="500"/>
+    </OCD>
+
     <OCD name="Source Actions" id="Src_Action_Provider">
         <AD name="Source ID" id="sourceId" required="true" type="String" />
         <AD name="Title" id="title" required="true" type="String" />
@@ -81,6 +88,10 @@
 
     <Designate pid="ddf.catalog.impl.operations.QueryOperations">
         <Object ocdref="ddf.catalog.impl.operations.QueryOperations"></Object>
+    </Designate>
+
+    <Designate pid="ddf.catalog.cache.solr.impl.SolrCache">
+        <Object ocdref="ddf.catalog.cache.solr.impl.SolrCache"/>
     </Designate>
 
 
