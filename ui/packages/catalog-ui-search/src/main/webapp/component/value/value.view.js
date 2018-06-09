@@ -69,6 +69,12 @@ define([
                             model: this.model
                         }));
                         break;
+                    case 'time':
+                        this.input.show(new InputDateView({
+                            model: this.model,
+                            onlyTimePicker: true
+                        }));
+                        break;
                     case 'thumbnail':
                         this.input.show(new InputThumbnailView({
                             model: this.model

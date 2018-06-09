@@ -29,9 +29,7 @@ public class DeliveryScheduleMetacardTypeImpl extends MetacardTypeImpl {
 
   public static final String DELIVERY_SCHEDULED = "deliveryScheduled";
 
-  public static final String DELIVERY_SCHEDULE_HOURS = "hours";
-
-  public static final String DELIVERY_SCHEDULE_MINUTES = "minutes";
+  public static final String DELIVERY_SCHEDULE_TIME = "deliveryTime";
 
   public static final String SCHEDULE_DELIVERY_IDS = "deliveryIds";
 
@@ -50,11 +48,7 @@ public class DeliveryScheduleMetacardTypeImpl extends MetacardTypeImpl {
 
     DELIVERY_DESCRIPTORS.add(
         new AttributeDescriptorImpl(
-            DELIVERY_SCHEDULE_HOURS, false, true, false, false, BasicTypes.INTEGER_TYPE));
-
-    DELIVERY_DESCRIPTORS.add(
-        new AttributeDescriptorImpl(
-            DELIVERY_SCHEDULE_MINUTES, false, true, false, false, BasicTypes.INTEGER_TYPE));
+            DELIVERY_SCHEDULE_TIME, false, true, false, false, BasicTypes.STRING_TYPE));
 
     DELIVERY_DESCRIPTORS.add(
         new AttributeDescriptorImpl(

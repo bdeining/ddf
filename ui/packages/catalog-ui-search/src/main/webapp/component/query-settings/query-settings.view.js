@@ -144,11 +144,13 @@ define([
         setupScheduling: function() {
             let username = user.get('user').get('userid');
             let scheduleModel = this.model.get('schedules').get(username);
+            let deliveryModel = this.model.get('deliveries').get(username);
             if (scheduleModel === undefined) {
                 scheduleModel = new QueryScheduleModel({ userId: username });
             }
             this.settingsSchedule.show(new ScheduleQueryView({
-                model: scheduleModel
+                model: scheduleModel,
+                deliveryModel: deliveryModel
             }));
             this.settingsSchedule.currentView.turnOffEditing();
         },
