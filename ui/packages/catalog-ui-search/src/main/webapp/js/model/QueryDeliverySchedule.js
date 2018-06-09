@@ -18,8 +18,7 @@ define([
         defaults: {
             userId: '',
             deliveryScheduled: false,
-            hours: '00',
-            minutes: '00',
+            deliveryTime: '',
             deliveryIds: []
         }
     });

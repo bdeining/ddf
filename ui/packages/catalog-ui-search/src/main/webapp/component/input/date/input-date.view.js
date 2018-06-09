@@ -26,8 +26,15 @@ define([
     'eonasdan-bootstrap-datetimepicker'
 ], function (Marionette, _, $, template, CustomElements, moment, InputView, Common, user) {
 
-    function getDateFormat() {
-        return user.get('user').get('preferences').get('timeFormat');
+    function getDateFormat(onlyTimePicker) {
+        let format = user.get('user').get('preferences').get('timeFormat');
+        if (format === 'DD MMM YYYY HH:mm:ss.SSS' && onlyTimePicker) {
+            format = 'HH:mm'
+        }
+        if (format === 'DD MMM YYYY h:mm:ss.SSS a' && onlyTimePicker) {
+            format = 'hh:mm a'
+        }
+        return format
     }
 
     return InputView.extend({
@@ -50,7 +57,7 @@ define([
         },
         initializeDatepicker: function(){
             this.$el.find('.input-group.date').datetimepicker({
-                format: getDateFormat(),
+                format: getDateFormat(this.options.onlyTimePicker),
                 widgetParent: 'body',
                 keyBinds: {
                     t: null
@@ -90,7 +97,7 @@ define([
         getCurrentValue: function(){
             var currentValue = this.$el.find('input').val();
             if (currentValue){
-                return (moment(currentValue, getDateFormat())).toISOString();
+                return (moment(currentValue, getDateFormat(this.options.onlyTimePicker))).toISOString();
             } else {
                 return null;
             }

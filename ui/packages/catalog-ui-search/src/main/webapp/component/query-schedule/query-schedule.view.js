@@ -114,7 +114,8 @@ define([
             this.handleSchedulingValue();
 
             const userId = user.get('user').get('userid');
-            this.deliveryScheduling.show(new QueryDeliveryScheduleView({model: new QueryDeliveryScheduleModel({userId: userId})}));
+            const deliveryModel = this.options.deliveryModel || new QueryDeliveryScheduleModel({ userId: userId })
+            this.deliveryScheduling.show(new QueryDeliveryScheduleView({ model: deliveryModel }));
 
             this.amountPicker.show(new PropertyView({
                 model: new Property({
@@ -208,15 +209,6 @@ define([
                 scheduleEnd: this.endPicker.currentView.model.getValue()[0]
             });
             return this.model;
-
-            // return {
-            //     isScheduled: this.enableScheduling.currentView.model.getValue()[0],
-            //     scheduleAmount: this.amountPicker.currentView.model.getValue()[0],
-            //     scheduleUnit: this.unitPicker.currentView.model.getValue()[0],
-            //     scheduleStart: this.startPicker.currentView.model.getValue()[0],
-            //     scheduleEnd: this.endPicker.currentView.model.getValue()[0],
-            //     scheduleSubscribers: scheduleSubscribers
-            // };
         },
         getDeliveryConfiguration: function() {
             return this.deliveryScheduling.currentView.getDataModel();

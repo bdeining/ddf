@@ -121,16 +121,6 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
     SchedulableFuture apply(DateTime start, DateTime end, Integer interval, IgniteCache cache);
   }
 
-  @FunctionalInterface
-  interface PartialDelivery {
-    SchedulableFuture apply(
-        Boolean delayed,
-        Integer hours,
-        Integer minutes,
-        Map<String, Object> scheduleData,
-        IgniteCache cache);
-  }
-
   public static final String DELIVERY_METHODS_KEY = "deliveryMethods";
 
   public static final String DELIVERY_METHOD_ID_KEY = "deliveryId";
@@ -216,14 +206,110 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
       final Supplier<Fallible<IgniteCache<String, Set<String>>>> runningCache,
       final String queryMetacardId,
       final boolean delayed,
-      final int hours,
-      final int minutes,
+      final String deliveryTime,
       Map<String, Object> scheduleData,
-      final PartialDelivery partialDelivery) {
-    DateTime now = DateTime.now();
-    DateTime scheduled = now.withHourOfDay(hours).withMinuteOfHour(minutes);
-    if (scheduled.compareTo(now) < 0) {
-      scheduled = scheduled.plusDays(1);
+      final PartialJob partialDelivery) {
+
+    Boolean queryIsScheduled = (Boolean) scheduleData.get(ScheduleMetacardTypeImpl.IS_SCHEDULED);
+    if (!queryIsScheduled) {
+      return success();
+    }
+    DateTime queryScheduleStart =
+        DateTime.parse(
+            (String) scheduleData.get(ScheduleMetacardTypeImpl.SCHEDULE_START),
+            ISO_8601_DATE_FORMAT);
+    DateTime queryScheduleEnd =
+        DateTime.parse(
+            (String) scheduleData.get(ScheduleMetacardTypeImpl.SCHEDULE_END), ISO_8601_DATE_FORMAT);
+    RepetitionTimeUnit queryScheduleUnit =
+        RepetitionTimeUnit.valueOf(
+            ((String) scheduleData.get(ScheduleMetacardTypeImpl.SCHEDULE_UNIT)).toUpperCase());
+    Integer queryScheduleAmount =
+        (Integer) scheduleData.get(ScheduleMetacardTypeImpl.SCHEDULE_AMOUNT);
+
+    final long queryIntervalInMillis;
+    final long lengthOfDayInMillis =
+        queryScheduleStart.plusDays(1).getMillis() - queryScheduleStart.getMillis();
+    switch (queryScheduleUnit) {
+      case MINUTES:
+        queryIntervalInMillis =
+            queryScheduleStart.plusMinutes(queryScheduleAmount).getMillis()
+                - queryScheduleStart.getMillis();
+        break;
+      case HOURS:
+        queryIntervalInMillis =
+            queryScheduleStart.plusHours(queryScheduleAmount).getMillis()
+                - queryScheduleStart.getMillis();
+        break;
+      case DAYS:
+        queryIntervalInMillis =
+            queryScheduleStart.plusDays(queryScheduleAmount).getMillis()
+                - queryScheduleStart.getMillis();
+        break;
+      case WEEKS:
+        queryIntervalInMillis =
+            queryScheduleStart.plusWeeks(queryScheduleAmount).getMillis()
+                - queryScheduleStart.getMillis();
+        break;
+      case MONTHS:
+        queryIntervalInMillis =
+            queryScheduleStart.plusMonths(queryScheduleAmount).getMillis()
+                - queryScheduleStart.getMillis();
+        break;
+      case YEARS:
+        queryIntervalInMillis =
+            queryScheduleStart.plusYears(queryScheduleAmount).getMillis()
+                - queryScheduleStart.getMillis();
+        break;
+      default:
+        queryIntervalInMillis = 0;
+        break;
+    }
+
+    DateTime deliveryScheduleStart;
+    DateTime deliveryScheduleEnd;
+    RepetitionTimeUnit deliveryScheduleUnit;
+    Integer deliveryScheduleAmount;
+
+    /*
+      Logic:
+      if delivery execution is delayed:
+        - parse the delivery time
+        - ensure it comes after the query start time
+        - check to see if the query repeats more or less than once per day
+        - if it repeats less than once per day (interval > one day):
+          - make the delivery interval a shifted copy of the query interval (i.e. query every 8 months -> delivery every 8 months)
+        - otherwise:
+          - make the delivery interval once per day, and make it end at a shifted end time
+          TODO: There might be a bug here if QueryStart = 2PM, QueryEnd = 5PM, repeat every 1hr, deliver at 10PM
+      otherwise:
+        - make the delivery execution the same as the query execution.
+        Include a minimal offset to avoid "delivery and query run at same time" -> "delivery technically runs before query" scheduling decisions
+        I'd rather have the delivery happen a minute later than scheduled than potentially wait a whole additional Query Schedule Unit (i.e. 8 months)
+     */
+    if (delayed) {
+      deliveryScheduleStart = DateTime.parse(deliveryTime, ISO_8601_DATE_FORMAT);
+      if (deliveryScheduleStart.compareTo(queryScheduleStart) < 0) {
+        deliveryScheduleStart = deliveryScheduleStart.plusDays(1);
+      }
+      if (queryIntervalInMillis > lengthOfDayInMillis) {
+        deliveryScheduleEnd =
+            queryScheduleEnd.plus(
+                deliveryScheduleStart.getMillis() - queryScheduleStart.getMillis());
+        deliveryScheduleUnit = queryScheduleUnit;
+        deliveryScheduleAmount = queryScheduleAmount;
+      } else {
+        deliveryScheduleEnd =
+            deliveryScheduleStart.plus(
+                queryScheduleEnd.getMillis() - queryScheduleStart.getMillis());
+        deliveryScheduleUnit = RepetitionTimeUnit.DAYS;
+        deliveryScheduleAmount = 1;
+      }
+    } else {
+      deliveryScheduleStart = queryScheduleStart.plusMinutes(1);
+      deliveryScheduleEnd = queryScheduleEnd.plusMinutes(1);
+      deliveryScheduleUnit = queryScheduleUnit;
+      deliveryScheduleAmount = queryScheduleAmount;
     }
 
     Fallible<IgniteCache<String, Map<String, String>>> queryResultCache =
@@ -233,26 +319,17 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
       return queryResultCache.prependToError(
           "Unable to retrieve \"%s\" cache from ignite", QUERIES_CACHE_NAME);
 
-    RepetitionTimeUnit unit = RepetitionTimeUnit.DAYS;
-    if (!delayed) {
-      String repUnit = (String) scheduleData.get(ScheduleMetacardTypeImpl.SCHEDULE_UNIT);
-      unit = RepetitionTimeUnit.valueOf(repUnit.toUpperCase());
-    }
     return scheduleJob(
         scheduler,
         partialDelivery.apply(
-            delayed,
-            hours,
-            minutes,
-            scheduleData,
+            deliveryScheduleStart,
+            deliveryScheduleEnd,
+            deliveryScheduleAmount,
             queryResultCache.or(
                 /* Should never occur, but we need the value here not Fallible */ null)),
         runningCache,
-        unit,
-        scheduled,
-        delayed,
-        hours,
-        minutes,
+        deliveryScheduleUnit,
+        deliveryScheduleStart,
         queryMetacardId);
   }
 
@@ -321,27 +398,10 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
       final RepetitionTimeUnit unit,
       final DateTime start,
       final String metacardId) {
-    return scheduleJob(scheduler, executor, runningCache, unit, start, false, 0, 0, metacardId);
-  }
-
-  private Fallible scheduleJob(
-      final IgniteScheduler scheduler,
-      final SchedulableFuture executor,
-      final Supplier<Fallible<IgniteCache<String, Set<String>>>> runningCache,
-      final RepetitionTimeUnit unit,
-      final DateTime start,
-      final boolean delayed,
-      final int hours,
-      final int minutes,
-      final String metacardId) {
     final SchedulerFuture job;
     synchronized (this) {
       try {
-        if (delayed) {
-          job = scheduler.scheduleLocal(executor, minutes + " " + hours + " * * *");
-        } else {
-          job = scheduler.scheduleLocal(executor, unit.makeCronToRunEachUnit(start));
-        }
+        job = scheduler.scheduleLocal(executor, unit.makeCronToRunEachUnit(start));
       } catch (Exception exception) {
         return error(
             "A problem occurred attempting to schedule a job for metacard \"%s\": %s",
@@ -430,7 +490,7 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
       final String queryMetacardId,
       final String queryMetacardTitle,
       final Map<String, Object> deliveryData,
-      final Map<String, Object> scheduleData) {
+      final Map<String, Object> queryScheduleData) {
 
     Fallible<List<QueryCourier>> serviceReferences = Fallible.of(queryCourierServiceReferences);
 
@@ -441,13 +501,11 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
         (String) deliveryData.get(DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_USER_ID);
     Boolean delayedScheduled =
         (Boolean) deliveryData.get(DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULED);
-    Integer hours =
-        (Integer) deliveryData.get(DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_HOURS);
-    Integer minutes =
-        (Integer) deliveryData.get(DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_MINUTES);
+    String deliveryTime =
+        (String) deliveryData.get(DeliveryScheduleMetacardTypeImpl.DELIVERY_SCHEDULE_TIME);
 
-    PartialDelivery partialDelivery =
-        (delayed, hrs, mins, queryScheduleProps, cache) ->
+    PartialJob partialDelivery =
+        (deliveryStart, deliveryEnd, deliveryInterval, cache) ->
             new DeliveryExecutor(
                 persistentStore,
                 serviceReferences,
@@ -457,19 +515,17 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
                 queryMetacardTitle,
                 deliveryIds,
                 userId,
-                delayed,
-                hrs,
-                mins,
-                queryScheduleProps);
+                deliveryInterval,
+                deliveryStart,
+                deliveryEnd);
 
     checkAndScheduleDelivery(
         scheduler,
         () -> getDeliveryScheduleCache(true),
         queryMetacardId,
         delayedScheduled,
-        hours,
-        minutes,
-        scheduleData,
+        deliveryTime,
+        queryScheduleData,
         partialDelivery);
   }
 
