@@ -276,17 +276,31 @@ class QueryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFuture
                   });
       final DateTime now = DateTime.now();
       if (job != null && (isCancelled || end.compareTo(now) < 0)) {
+        LOGGER.debug(
+            "Exiting QueryExecutor.run() because job != null && (isCancelled || end.compareTo(now) < 0). job: {}, isCancelled: {}, end: {}, now: {}",
+            job.toString(),
+            isCancelled,
+            end.toString(),
+            now.toString());
         cancel();
         return;
       }
 
       if (start.compareTo(now) > 0) {
+        LOGGER.debug(
+            "Exiting QueryExecutor.run() because start.compareTo(now) > 0. start: {}, now: {}",
+            start.toString(),
+            now.toString());
         return;
       }
 
       synchronized (unitsPassedSinceStarted) {
         if (unitsPassedSinceStarted.get() < scheduleInterval - 1) {
           unitsPassedSinceStarted.incrementAndGet();
+          LOGGER.debug(
+              "Exiting QueryExecutor.run() because unitsPassedSinceStarted < scheduleInterval-1. unitsPassedSinceStarted: {}, scheduleInterval-1: {}",
+              unitsPassedSinceStarted.get(),
+              scheduleInterval - 1);
           return;
         }
       }
@@ -303,6 +317,11 @@ class QueryExecutor implements QuerySchedulingPostIngestPlugin.SchedulableFuture
 
       if (job.nextExecutionTime() == 0
           || end.compareTo(new DateTime(job.nextExecutionTime(), DateTimeZone.UTC)) <= 0) {
+        LOGGER.debug(
+            "Ran query, but cancelling future executions because job.nextExecutionTime() == 0 || end.CompareTo(nextExecutionTime) <= 0. job.nextExecutionTime: {}, end: {}, nextExecutionTime: {}",
+            job.nextExecutionTime(),
+            end.toString(),
+            new DateTime(job.nextExecutionTime(), DateTimeZone.UTC).toString());
         cancel();
       }
     } catch (Exception exception) {

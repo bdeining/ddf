@@ -272,21 +272,21 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
     Integer deliveryScheduleAmount;
 
     /*
-      Logic:
-      if delivery execution is delayed:
-        - parse the delivery time
-        - ensure it comes after the query start time
-        - check to see if the query repeats more or less than once per day
-        - if it repeats less than once per day (interval > one day):
-          - make the delivery interval a shifted copy of the query interval (i.e. query every 8 months -> delivery every 8 months)
-        - otherwise:
-          - make the delivery interval once per day, and make it end at a shifted end time
-          TODO: There might be a bug here if QueryStart = 2PM, QueryEnd = 5PM, repeat every 1hr, deliver at 10PM
-      otherwise:
-        - make the delivery execution the same as the query execution.
-        Include a minimal offset to avoid "delivery and query run at same time" -> "delivery technically runs before query" scheduling decisions
-        I'd rather have the delivery happen a minute later than scheduled than potentially wait a whole additional Query Schedule Unit (i.e. 8 months)
-     */
+     Logic:
+     if delivery execution is delayed:
+       - parse the delivery time
+       - ensure it comes after the query start time
+       - check to see if the query repeats more or less than once per day
+       - if it repeats less than once per day (interval > one day):
+         - make the delivery interval a shifted copy of the query interval (i.e. query every 8 months -> delivery every 8 months)
+       - otherwise:
+         - make the delivery interval once per day, and make it end at a shifted end time
+         TODO: There might be a bug here if QueryStart = 2PM, QueryEnd = 5PM, repeat every 1hr, deliver at 10PM
+     otherwise:
+       - make the delivery execution the same as the query execution.
+       Include a minimal offset to avoid "delivery and query run at same time" -> "delivery technically runs before query" scheduling decisions
+       I'd rather have the delivery happen a minute later than scheduled than potentially wait a whole additional Query Schedule Unit (i.e. 8 months)
+    */
     if (delayed) {
       deliveryScheduleStart = DateTime.parse(deliveryTime, ISO_8601_DATE_FORMAT);
       if (deliveryScheduleStart.compareTo(queryScheduleStart) < 0) {
@@ -402,6 +402,11 @@ public class QuerySchedulingPostIngestPlugin implements PostIngestPlugin {
     synchronized (this) {
       try {
         job = scheduler.scheduleLocal(executor, unit.makeCronToRunEachUnit(start));
+        LOGGER.debug(
+            "Scheduled local job for metacardId: {}, starting at: {}, with cron string: {}",
+            metacardId,
+            start.toString(),
+            unit.makeCronToRunEachUnit(start));
       } catch (Exception exception) {
         return error(
             "A problem occurred attempting to schedule a job for metacard \"%s\": %s",
