@@ -456,7 +456,7 @@
                             javax.servlet;version="[3,4)",
                             org.apache.commons.logging; version="[1.1.0,2.0.0)",
                             org.slf4j,
-                            org.apache.ignite;version="[2.3.0,3.0.0)",
+                            org.apache.ignite;version="[2.4.0,3.0.0)",
                             !sun.reflect,
                             !com.sun.management,
                             !org.noggit,
