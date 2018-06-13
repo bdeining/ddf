@@ -14,6 +14,8 @@
 package org.codice.ddf.spatial.kml.transformer;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static org.codice.ddf.spatial.kml.transformer.KmzInputTransformer.KML_EXTENSION;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
@@ -35,16 +37,17 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.apache.commons.io.IOUtils;
+import org.codice.ddf.catalog.transform.MultiMetacardTransformer;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mock;
 
-public class KmzTransformerTest {
+public class KmzMultiMetacardTransformerTest {
 
-  private KmzTransformer kmzTransformer;
+  private KmzMultiMetacardTransformer kmzMultiMetacardTransformer;
 
-  @Mock private KMLTransformerImpl kmlTransformer;
+  @Mock private MultiMetacardTransformer kmlMultiMetacardTransformer;
 
   private static String kmlInput1, kmlInput2;
 
@@ -57,7 +60,8 @@ public class KmzTransformerTest {
   @Before
   public void setup() throws CatalogTransformerException {
     initMocks(this);
-    kmzTransformer = new KmzTransformer(kmlTransformer, "kmz");
+    kmzMultiMetacardTransformer =
+        new KmzMultiMetacardTransformer("kmz", emptySet(), kmlMultiMetacardTransformer);
 
     InputStream kmlInputStream1 =
         new ByteArrayInputStream(kmlInput1.getBytes(StandardCharsets.UTF_8));
@@ -70,14 +74,15 @@ public class KmzTransformerTest {
 
     final List<BinaryContent> binaryContents = asList(bc1, bc2);
 
-    when(kmlTransformer.transform(anyList(), anyMap())).thenReturn(binaryContents);
+    when(kmlMultiMetacardTransformer.transform(anyList(), anyMap())).thenReturn(binaryContents);
   }
 
   @Test
   public void testKmzTransform() throws CatalogTransformerException, IOException {
 
     // NOTE: Response from kml transformer is mocked, metacard list passed in is not used.
-    List<BinaryContent> transform = kmzTransformer.transform(Collections.singletonList(null), null);
+    List<BinaryContent> transform =
+        kmzMultiMetacardTransformer.transform(Collections.singletonList(null), emptyMap());
     assertThat(transform, hasSize(2));
 
     String outputKml1 = getOutputFromBinaryContent(transform.get(0));
@@ -122,7 +127,7 @@ public class KmzTransformerTest {
 
   private static String resourceToString(String resourceName) throws IOException {
     try (final InputStream inputStream =
-        KmzTransformerTest.class.getResourceAsStream(resourceName)) {
+        KmzMultiMetacardTransformerTest.class.getResourceAsStream(resourceName)) {
       return IOUtils.toString(inputStream, StandardCharsets.UTF_8.name());
     }
   }
