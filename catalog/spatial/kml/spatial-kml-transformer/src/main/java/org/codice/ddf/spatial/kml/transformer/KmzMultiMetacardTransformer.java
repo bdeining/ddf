@@ -14,7 +14,9 @@
 package org.codice.ddf.spatial.kml.transformer;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.codice.ddf.spatial.kml.transformer.KmlMultiMetacardTransformer.DOC_NAME_ARG_KEY;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import ddf.catalog.Constants;
 import ddf.catalog.data.BinaryContent;
@@ -26,7 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,13 +41,16 @@ import org.codice.ddf.catalog.transform.MultiMetacardTransformer;
 import org.codice.ddf.platform.util.TemporaryFileBackedOutputStream;
 import org.springframework.util.CollectionUtils;
 
-public class KmzTransformer implements MultiMetacardTransformer {
+public class KmzMultiMetacardTransformer implements MultiMetacardTransformer {
 
   private static final MimeType KMZ_MIMETYPE;
-  private KMLTransformerImpl kmlTransformer;
+  private final Set<MimeType> mimeTypes;
+  private MultiMetacardTransformer kmlTransformer;
   private String transformerId;
 
   private static final String DOC_KML = "doc.kml";
+
+  @VisibleForTesting static final String KMZ_DOC_NAME_DEFAULT = "KMZ List Export";
 
   static {
     try {
@@ -55,9 +60,11 @@ public class KmzTransformer implements MultiMetacardTransformer {
     }
   }
 
-  public KmzTransformer(KMLTransformerImpl kmlTransformer, String id) {
-    this.kmlTransformer = checkNotNull(kmlTransformer);
+  public KmzMultiMetacardTransformer(
+      String id, Set<MimeType> mimeTypes, MultiMetacardTransformer kmlMutiMetacardTransformer) {
+    this.kmlTransformer = checkNotNull(kmlMutiMetacardTransformer);
     this.transformerId = id;
+    this.mimeTypes = mimeTypes;
   }
 
   @Override
@@ -82,8 +89,15 @@ public class KmzTransformer implements MultiMetacardTransformer {
 
     final List<BinaryContent> kmzBinaryContents = new ArrayList<>();
 
+    if (arguments == null) {
+      throw new CatalogTransformerException("Arguments map cannot be null");
+    }
+
+    final HashMap<String, Serializable> copy = new HashMap<>(arguments);
+    copy.putIfAbsent(DOC_NAME_ARG_KEY, KMZ_DOC_NAME_DEFAULT);
+
     // Get kml file input stream.
-    final List<BinaryContent> kmlBinaryContents = kmlTransformer.transform(metacards, arguments);
+    final List<BinaryContent> kmlBinaryContents = kmlTransformer.transform(metacards, copy);
 
     for (BinaryContent kmlBinaryContent : kmlBinaryContents) {
 
@@ -124,7 +138,7 @@ public class KmzTransformer implements MultiMetacardTransformer {
 
   @Override
   public Set<MimeType> getMimeTypes() {
-    return Collections.singleton(KMZ_MIMETYPE);
+    return mimeTypes;
   }
 
   @Override

@@ -21,10 +21,8 @@ import de.micromata.opengis.kml.v_2_2_0.Placemark;
 import java.io.Serializable;
 import java.util.Map;
 import javax.security.auth.Subject;
-import org.codice.ddf.catalog.transform.MultiMetacardTransformer;
 
-public interface KMLTransformer
-    extends QueryResponseTransformer, MetacardTransformer, MultiMetacardTransformer {
+public interface KMLTransformer extends QueryResponseTransformer, MetacardTransformer {
   Placemark transformEntry(Subject user, Metacard entry, Map<String, Serializable> arguments)
       throws CatalogTransformerException;
 }
