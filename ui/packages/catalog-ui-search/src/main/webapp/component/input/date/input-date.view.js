@@ -48,7 +48,7 @@ define([
         serializeData: function () {
             return _.extend(this.model.toJSON(), {
                 cid: this.cid,
-                humanReadableDate: this.model.getValue() ? user.getUserReadableDate(this.model.getValue()) : this.model.getValue()
+                humanReadableDate: this.model.getValue() ? moment(this.model.getValue()).format(getDateFormat(this.options.onlyTimePicker)) : this.model.getValue()
             });
         },
         onRender: function () {
@@ -68,7 +68,7 @@ define([
             this.$el.toggleClass('is-readOnly', this.model.isReadOnly());
         },
         handleValue: function(){
-            this.$el.find('.input-group.date').data('DateTimePicker').date(user.getUserReadableDate(this.model.getValue()));
+            this.$el.find('.input-group.date').data('DateTimePicker').date(moment(this.model.getValue()).format(getDateFormat(this.options.onlyTimePicker)));
         },
         focus: function(){
             this.$el.find('input').select();
