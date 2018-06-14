@@ -29,6 +29,7 @@ const SortItemCollectionView = require('component/sort/sort.view')
 const ScheduleQueryView = require('component/query-schedule/query-schedule.view')
 const Common = require('js/Common')
 const properties = require('properties')
+const QueryScheduleModel = require('js/model/QuerySchedule');
 const ResultForm = properties.hasExperimentalEnabled() ? require('component/result-form/result-form') : {}
 
 module.exports = Marionette.LayoutView.extend({
@@ -95,32 +96,6 @@ module.exports = Marionette.LayoutView.extend({
                 this.resultForm.show(new PropertyView({
                     model: detailLevelProperty
                 }));
-                this.resultForm.currentView.turnOnEditing();
-
-            const extensions = this.getExtensions()
-            if (extensions !== undefined) {
-                this.extensions.show(extensions)
-            }
-            resultTemplates.push({
-                label: 'All Fields',
-                value: 'All Fields',
-                id: 'All Fields',
-                descriptors: [],
-                description: 'All Fields'
-            });
-            resultTemplates =  _.uniq(resultTemplates, 'id');
-            let lastIndex = resultTemplates.length - 1;
-            let detailLevelProperty = new Property({
-                label: 'Result Form',
-                enum: resultTemplates,
-                value: [this.model.get('detail-level') || (resultTemplates && resultTemplates[lastIndex] && resultTemplates[lastIndex].value)],
-                showValidationIssues: false,
-                id: 'Result Form'
-            });
-            this.listenTo(detailLevelProperty, 'change:value', this.handleChangeDetailLevel);
-            this.resultForm.show(new PropertyView({
-                model: detailLevelProperty
-            }));
             this.resultForm.currentView.turnOnEditing();
         },
         handleChangeDetailLevel: function (model, values) {
