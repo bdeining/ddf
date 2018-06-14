@@ -19,7 +19,6 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
-import com.google.common.collect.ImmutableMap;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
@@ -27,7 +26,6 @@ import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import ddf.action.ActionProvider;
-import ddf.catalog.Constants;
 import ddf.catalog.data.BinaryContent;
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.Result;
@@ -56,12 +54,10 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -328,21 +324,36 @@ public class KMLTransformerImpl implements KMLTransformer {
     return kmlPlacemark;
   }
 
-  private Geometry getKmlGeoFromWkt(final String wkt) throws CatalogTransformerException {
+  protected static Geometry getKmlGeoFromWkt(final String wkt) throws CatalogTransformerException {
+    return getKmlGeoFromWkt(wkt, true);
+  }
+
+  /**
+   * @param wkt WKT String
+   * @param addPointsFromGeometries If points from non {@link POINT_TYPE} geometries should be added
+   *     to KML Geometry
+   * @return KML {@link Geometry}
+   * @throws CatalogTransformerException
+   */
+  protected static Geometry getKmlGeoFromWkt(
+      final String wkt, final boolean addPointsFromGeometries) throws CatalogTransformerException {
+
     if (StringUtils.isBlank(wkt)) {
       throw new CatalogTransformerException(
           "WKT was null or empty. Unable to preform KML Transform on Metacard.");
     }
 
-    com.vividsolutions.jts.geom.Geometry geo = readGeoFromWkt(wkt);
-    Geometry kmlGeo = createKmlGeo(geo);
-    if (!POINT_TYPE.equals(geo.getGeometryType())) {
-      kmlGeo = addPointToKmlGeo(kmlGeo, geo.getCoordinate());
+    final com.vividsolutions.jts.geom.Geometry jtsGeo = readGeoFromWkt(wkt);
+    Geometry kmlGeoFromWkt = createKmlGeo(jtsGeo);
+
+    if (addPointsFromGeometries && !POINT_TYPE.equals(jtsGeo.getGeometryType())) {
+      kmlGeoFromWkt = addPointToKmlGeo(kmlGeoFromWkt, jtsGeo.getCoordinate());
     }
-    return kmlGeo;
+
+    return kmlGeoFromWkt;
   }
 
-  private Geometry createKmlGeo(com.vividsolutions.jts.geom.Geometry geo)
+  private static Geometry createKmlGeo(com.vividsolutions.jts.geom.Geometry geo)
       throws CatalogTransformerException {
     Geometry kmlGeo;
     if (POINT_TYPE.equals(geo.getGeometryType())) {
@@ -381,7 +392,7 @@ public class KMLTransformerImpl implements KMLTransformer {
     return kmlGeo;
   }
 
-  private com.vividsolutions.jts.geom.Geometry readGeoFromWkt(final String wkt)
+  private static com.vividsolutions.jts.geom.Geometry readGeoFromWkt(final String wkt)
       throws CatalogTransformerException {
     WKTReader reader = new WKTReader();
     try {
@@ -391,7 +402,7 @@ public class KMLTransformerImpl implements KMLTransformer {
     }
   }
 
-  private Geometry addPointToKmlGeo(
+  private static Geometry addPointToKmlGeo(
       Geometry kmlGeo, com.vividsolutions.jts.geom.Coordinate vertex) {
     if (null != vertex) {
       de.micromata.opengis.kml.v_2_2_0.Point kmlPoint =
@@ -452,12 +463,8 @@ public class KMLTransformerImpl implements KMLTransformer {
       throw new CatalogTransformerException("Must provide at least one Metacard to transform.");
     }
 
-    final boolean skipUntransformableItems =
-        (boolean) arguments.getOrDefault(SKIP_UNTRANSFORMABLE_ITEMS_ARG, false);
     final String docNameArgument = (String) arguments.get(DOC_NAME_ARG);
-
     final String docId = UUID.randomUUID().toString();
-
     final String restUriAbsolutePath = (String) arguments.get("url");
     LOGGER.debug("rest string url arg: {}", restUriAbsolutePath);
 
@@ -473,15 +480,11 @@ public class KMLTransformerImpl implements KMLTransformer {
         }
         kmlDoc.getFeature().add(placemark);
       } catch (CatalogTransformerException e) {
-        if (!skipUntransformableItems) {
-          throw e;
-        } else {
-          LOGGER.debug(
-              "Error transforming current metacard ({}) to KML and will continue with remaining "
-                  + "metacards.",
-              metacard.getId(),
-              e);
-        }
+        LOGGER.debug(
+            "Error transforming current metacard ({}) to KML and will continue with remaining "
+                + "metacards.",
+            metacard.getId(),
+            e);
       }
     }
 
@@ -521,34 +524,5 @@ public class KMLTransformerImpl implements KMLTransformer {
     kmlResultString = writer.toString();
 
     return kmlResultString;
-  }
-
-  @Override
-  public List<BinaryContent> transform(
-      List<Metacard> metacards, Map<String, ? extends Serializable> arguments)
-      throws CatalogTransformerException {
-
-    Map<String, Serializable> copy = new HashMap<>(arguments);
-    copy.putIfAbsent("docName", "KML List Export");
-
-    return Collections.singletonList(getBinaryContent(metacards, copy));
-  }
-
-  @Override
-  public String getId() {
-    return "kml";
-  }
-
-  @Override
-  public Set<MimeType> getMimeTypes() {
-    return Collections.singleton(KML_MIMETYPE);
-  }
-
-  @Override
-  public Map<String, Object> getProperties() {
-    return new ImmutableMap.Builder<String, Object>()
-        .put(Constants.SERVICE_ID, getId())
-        .put("mime-type", getMimeTypes())
-        .build();
   }
 }
