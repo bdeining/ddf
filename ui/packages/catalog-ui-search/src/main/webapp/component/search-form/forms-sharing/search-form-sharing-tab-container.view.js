@@ -19,7 +19,7 @@
  const SearchFormCollectionView = require('./search-form-sharing.collection.view');
  const SearchFormSharingCollection = require('./search-form-sharing.collection');
  const CustomElements = require('js/CustomElements');
- const LoadingView = require('component/loading/loading.view')
+ const LoadingCompanionView = require("component/loading-companion/loading-companion.view")
 
  module.exports = Marionette.LayoutView.extend({
     template: template,
@@ -32,12 +32,16 @@
         this.searchFormSharingCollection = new SearchFormSharingCollection();
         this.listenTo(this.searchFormSharingCollection, 'change:doneLoading', this.handleLoadingSpinner);
     },
+    initialize: function () {
+        this.searchFormSharingCollection = new SearchFormSharingCollection();
+        this.listenTo(this.searchFormSharingCollection, 'change:doneLoading', this.handleLoadingSpinner);
+    },
     onRender: function () {
         this.collection.show(new SearchFormCollectionView({
             collection: this.searchFormSharingCollection.getCollection(),
             model: this.model
         }));
-        this.loadingView.show(new LoadingView({ DOMHook: this.$el }))
+        LoadingCompanionView.beginLoading(this, this.$el);
         this.handleLoadingSpinner();
     },
     showCollection: function() {
@@ -47,7 +51,7 @@
     },
     handleLoadingSpinner: function() {
         if(this.searchFormSharingCollection.getDoneLoading()) {
-            this.loadingView.currentView.remove();
+            LoadingCompanionView.endLoading(this);
         }
     }
  });

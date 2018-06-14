@@ -65,6 +65,9 @@ define([
     return Marionette.LayoutView.extend({
         template: template,
         tagName: CustomElements.register('filter'),
+        attributes: function() {
+            return { 'data-id': this.model.cid }
+        },
         events: {
             'click > .filter-remove': 'delete'
         },
@@ -83,7 +86,7 @@ define([
             this.listenTo(this.model, 'change:comparator', this.determineInput);
         },
         onBeforeShow: function(){
-            this.$el.toggleClass('hide-rearrange', this.options.isSortableDisabled || false);
+            this.$el.toggleClass('is-sortable', this.options.isSortable || true);
             this._filterDropdownModel = new DropdownModel({value: 'CONTAINS'});
             this.filterAttribute.show(DropdownView.createSimpleDropdown({
                 list: metacardDefinitions.sortedMetacardTypes.filter(function(metacardType){

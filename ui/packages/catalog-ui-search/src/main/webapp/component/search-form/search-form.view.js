@@ -12,15 +12,15 @@
  * <http://www.gnu.org/licenses/lgpl.html>.
  *
  **/
- /*global require*/
- const Marionette = require('marionette');
- const $ = require('jquery');
- const template = require('./search-form.hbs');
- const CustomElements = require('js/CustomElements');
- const user = require('../singletons/user-instance');
- const DropdownModel = require('../dropdown/dropdown');
- const SearchFormInteractionsDropdownView = require('../dropdown/search-form-interactions/dropdown.search-form-interactions.view');
- const SearchForm = require('./search-form');
+/*global require*/
+const Marionette = require('marionette');
+const $ = require('jquery');
+const template = require('./search-form.hbs');
+const CustomElements = require('js/CustomElements');
+const user = require('../singletons/user-instance');
+const DropdownModel = require('../dropdown/dropdown');
+const SearchFormInteractionsDropdownView = require('../dropdown/search-form-interactions/dropdown.search-form-interactions.view');
+const properties = require('properties');
 
 module.exports = Marionette.LayoutView.extend({
     template: template,
@@ -30,18 +30,21 @@ module.exports = Marionette.LayoutView.extend({
         'click': 'changeView'
     },
     regions: {
-        workspaceActions: '.choice-actions'
+        searchFormActions: '.choice-actions'
+    },
+    initialize: function() {
+        this.listenTo(this.model, 'change:type', this.changeView);
     },
     initialize: function() {
         //TODO Fix this hack
         this.listenTo(this.model, 'change:type', this.changeView);
     },
     onRender: function() {
-        if (this.model.get('type') === 'basic' || this.model.get('type') === 'text' || this.model.get('type') === 'new-form' || this.model.get('type') === 'newResult') {
+        if (this.model.get('type') === 'basic' || this.model.get('type') === 'text' || this.model.get('type') === 'new-form' || this.model.get('type') === 'new-result') {
             this.$el.addClass('is-static');
         }
-        else if (this.model.get('type') === 'custom' || this.model.get('type') === 'result') {
-            this.workspaceActions.show(new SearchFormInteractionsDropdownView({
+        else if (properties.hasExperimentalEnabled()) {
+            this.searchFormActions.show(new SearchFormInteractionsDropdownView({
                 model: new DropdownModel(),
                 modelForComponent: this.model,
                 collectionWrapperModel: this.options.collectionWrapperModel,
@@ -58,11 +61,9 @@ module.exports = Marionette.LayoutView.extend({
             case 'new-form':
                 this.options.queryModel.set({
                     type: 'new-form',
-                    associatedFormModel: this.model, //TODO: Compare this with the old approach of storing just the query id (for better or worse...)
+                    associatedFormModel: this.model,
                     title: this.model.get('name'),
-                    filterTree: this.model.get('filterTemplate'),
-                    accessGroups: this.model.get('accessGroups'),
-                    accessIndividuals: this.model.get('accessIndividuals')
+                    filterTree: this.model.get('filterTemplate')
                 });
                 if (oldType === 'new-form') {
                     this.options.queryModel.trigger('change:type');
@@ -71,10 +72,16 @@ module.exports = Marionette.LayoutView.extend({
                 break;
             case 'basic':
                 this.options.queryModel.set('type', 'basic');
+                if (oldType === 'new-form' || oldType === 'custom') {
+                    this.options.queryModel.set('title', 'Search Name');
+                }
                 user.getQuerySettings().set('type', 'basic');
                 break;
             case 'text':
                 this.options.queryModel.set('type', 'text');
+                if (oldType === 'new-form' || oldType === 'custom') {
+                    this.options.queryModel.set('title', 'Search Name');
+                }
                 user.getQuerySettings().set('type', 'text');
                 break;          
             case 'custom':
@@ -89,11 +96,9 @@ module.exports = Marionette.LayoutView.extend({
                     src: (this.model.get('querySettings') && this.model.get('querySettings').src) || '',
                     federation: (this.model.get('querySettings') && this.model.get('querySettings').federation) || 'enterprise',
                     sorts: sorts,
-                    'detail-level': (this.model.get('querySettings') && this.model.get('querySettings')['detail-level']) || 'All Fields',
-                    accessGroups: this.model.get('accessGroups'),
-                    accessIndividuals: this.model.get('accessIndividuals')
+                    'detail-level': (this.model.get('querySettings') && this.model.get('querySettings')['detail-level']) || 'allFields'
                 });
-                if (oldType  === this.model.get('type')) {
+                if (oldType  === 'custom') {
                     this.options.queryModel.trigger('change:type');
                 }
                 user.getQuerySettings().set('type', 'custom');
@@ -104,6 +109,5 @@ module.exports = Marionette.LayoutView.extend({
     },
     triggerCloseDropdown: function() {
         this.$el.trigger('closeDropdown.' + CustomElements.getNamespace());
-        this.options.queryModel.trigger('closeDropDown');
     }
 });

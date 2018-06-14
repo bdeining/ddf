@@ -19,6 +19,7 @@ const Backbone = require('backbone');
 const SearchForm = require('./search-form');
 const Common = require('js/Common');
 const user = require('component/singletons/user-instance');
+const properties = require('properties');
 
 const fixFilter = function(filter) {
     if (filter.filters) {
@@ -38,37 +39,28 @@ const fixTemplates = function(templates) {
 let cachedTemplates = [];
 let promiseIsResolved = false;
 
-const templatePromiseSupplier = () => $.ajax({
+const templatePromiseSupplier = () => properties.hasExperimentalEnabled() ? $.ajax({
         type: 'GET',
         context: this,
         url: '/search/catalog/internal/forms/query',
         contentType: 'application/json',
         success: function(data) {
             fixTemplates(data);
-            //Find templates with the same id but different property maps (because we should trust the server)
-            let updatedTemplates = data.filter(
-                incomingTemplate => _.any(cachedTemplates, (cachedTemplate) => cachedTemplate.id === incomingTemplate.id && !_.isEqual(cachedTemplate, incomingTemplate))
-            );
-            //Find templates that are new
-            let newTemplates = data.filter(
-                incomingTemplate => cachedTemplates.length === 0 || !_.any(cachedTemplates, (cachedTemplate) => cachedTemplate.id === incomingTemplate.id)
-            );
-            //Replace updated templates in their corresponding indices (//TODO: Should this just be a backbone collection instead of an array?)
-            _.each(updatedTemplates, 
-                updatedTemplate => cachedTemplates[_.findIndex(cachedTemplates, (cachedTemplate) => cachedTemplate.id === updatedTemplate.id)] = updatedTemplate
-            );
-            cachedTemplates = cachedTemplates.concat(newTemplates);
+            cachedTemplates = data;
             promiseIsResolved = true;
         }
-    });
+    }) : Promise.resolve();
 
 let bootstrapPromise = templatePromiseSupplier();
 
 module.exports = Backbone.AssociatedModel.extend({
     defaults: {
         doneLoading: false,
-        searchForms: [
+        searchForms: properties.hasExperimentalEnabled() ? [
             new SearchForm({type: 'new-form'}), 
+            new SearchForm({type: 'basic'}), 
+            new SearchForm({type: 'text'})
+        ] : [
             new SearchForm({type: 'basic'}), 
             new SearchForm({type: 'text'})
         ]
@@ -96,7 +88,7 @@ module.exports = Backbone.AssociatedModel.extend({
     }],
     addCustomForms: function() {
         if (!this.isDestroyed) {
-            $.each(cachedTemplates, function(index, value) {
+            cachedTemplates.forEach(function(value, index) {
                 if (this.checkIfOwnerOrSystem(value)) {
                     var utcSeconds = value.created / 1000;
                     var d = new Date(0);
@@ -130,13 +122,13 @@ module.exports = Backbone.AssociatedModel.extend({
     checkIfOwnerOrSystem: function(template) {
         let myEmail = user.get('user').get('email');
         let templateCreator = template.creator;
-        return myEmail === templateCreator || templateCreator === "System Template";
+        return myEmail === templateCreator || templateCreator === "system";
     },
     doneLoading: function() {
         this.set('doneLoading', true);
     },
     deleteCachedTemplateById: function(id) {
-        cachedTemplates = _.filter(cachedTemplates, function(template) {
+        cachedTemplates =  _.filter(cachedTemplates, function(template) {
             return template.id !== id
         });
     }

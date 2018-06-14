@@ -43,7 +43,6 @@ module.exports = Marionette.LayoutView.extend({
     basicAttribute: '.basic-type',
     basicAttributeSpecific: '.basic-type-specific'
   },
-  ui: {},
   filter: undefined,
   onBeforeShow: function () {
     this.model = this.model._cloneOf ? store.getQueryById(this.model._cloneOf) : this.model
@@ -54,12 +53,12 @@ module.exports = Marionette.LayoutView.extend({
     this.edit()
   },
   setupAttributeSpecific: function () {
-    let currentValue = this.model.get('descriptors') !== '{}' || this.model.get('descriptors') !== '[]' ? this.model.get('descriptors') : []
+    let currentValue = this.model.get('descriptors') !== {} || this.model.get('descriptors') !== [] ? this.model.get('descriptors') : []
     let excludedList = metacardDefinitions.getMetacardStartingTypes();
     this.basicAttributeSpecific.show(new PropertyView({
       model: new Property({
         enumFiltering: true,
-        showValidationIssues: false,
+        showValidationIssues: true,
         enumMulti: true,
         enum: _.filter(metacardDefinitions.sortedMetacardTypes, function (type) {
           return !metacardDefinitions.isHiddenTypeExceptThumbnail(type.id)
@@ -78,7 +77,7 @@ module.exports = Marionette.LayoutView.extend({
     }))
   },
   setupTitleInput: function () {
-    let currentValue = this.model.get('resultTitle') ? this.model.get('resultTitle') : ''
+    let currentValue = this.model.get('name') ? this.model.get('name') : ''
     this.basicTitle.show(new PropertyView({
       model: new Property({
         value: [currentValue],
@@ -118,41 +117,55 @@ module.exports = Marionette.LayoutView.extend({
   save: function () {
     let view = this
     Loading.beginLoading(view)
-    let descriptors = this.basicAttributeSpecific.currentView.model.get('value')
+    let descriptors = this.basicAttributeSpecific.currentView.model.get('value')[0]
     let title = this.basicTitle.currentView.model.getValue()[0]
+    if(title === '')
+    {
+      let $validationElement = this.basicTitle.currentView.$el.find('> .property-label .property-validation')
+      $validationElement.removeClass('is-hidden').removeClass('is-warning').addClass('is-error')
+      $validationElement.attr('title', "Name field cannot be blank")
+      Loading.endLoading(view)
+      return 
+    }
     let description = this.basicDescription.currentView.model.getValue()[0]
-    let id = this.model.get('formId')
-    let templatePerms = {
+    let id = this.model.get('id')
+
+    this.model.set({
       'descriptors': descriptors.flatten(),
       'title': title,
-      'description': description,
-      'id' : id
-    }
-    this.updateResults(templatePerms)
+      'description': description
+    })
+
+    this.updateResults()
   },
-  updateResults: function (templatePerms) {
+  updateResults: function () {
     let resultEndpoint = `/search/catalog/internal/forms/result`
+    var _this = this;
     $.ajax({
       url: resultEndpoint,
       contentType: 'application/json; charset=utf-8',
       dataType: 'json',
       type: 'PUT',
-      data: JSON.stringify(templatePerms),
+      data: JSON.stringify(_this.model.toJSON()),
       context: this,
       success: function (data) {
-        this.message('Success!', 'Saved Result Form', 'success')
+        ResultFormCollection.getResultCollection().filteredList = _.filter(ResultFormCollection.getResultCollection().filteredList, function(template) {
+          return template.id !== _this.model.get('id')
+        })
         ResultFormCollection.getResultCollection().filteredList.push({
-            id: templatePerms.id,
-            label: templatePerms.title,
-            value: templatePerms.title,
+            id: _this.model.get('id'),
+            label: _this.model.get('title'),
+            value: _this.model.get('title'),
             type: 'result',
-            descriptors: templatePerms.descriptors,
-            description: templatePerms.description
+            descriptors: _this.model.get('descriptors'),
+            description: _this.model.get('description'),
+            accessGroups: _this.model.get('accessGroups'),
+            accessIndividuals: _this.model.get('accessIndividual')
           })
           ResultFormCollection.getResultCollection().toggleUpdate()
-          this.cleanup()
+          _this.cleanup()
       },
-      error: this.cleanup()
+      error: _this.cleanup()
     })
   },
   message: function(title, message, type) {

@@ -13,28 +13,26 @@
  *
  **/
 /*global define, setTimeout*/
-define([
-    'marionette',
-    'backbone',
-    'underscore',
-    'jquery',
-    './query-settings.hbs',
-    'js/CustomElements',
-    'js/store',
-    'js/model/QuerySchedule',
-    'component/dropdown/dropdown',
-    'component/dropdown/query-src/dropdown.query-src.view',
-    'component/property/property.view',
-    'component/property/property',
-    'component/singletons/user-instance',
-    'component/sort/sort.view',
-    'component/query-schedule/query-schedule.view',
-    'js/Common',
-    'component/result-form/result-form'
-], function (Marionette, Backbone, _, $, template, CustomElements, store, QueryScheduleModel, DropdownModel,
-            QuerySrcView, PropertyView, Property, user, SortItemCollectionView, ScheduleQueryView, Common, ResultForm) {
+const Marionette = require('marionette')
+const Backbone = require('backbone')
+const _ = require('underscore')
+const $ = require('jquery')
+const template = require('./query-settings.hbs')
+const CustomElements = require('js/CustomElements')
+const store = require('js/store')
+const DropdownModel = require('component/dropdown/dropdown')
+const QuerySrcView = require('component/dropdown/query-src/dropdown.query-src.view')
+const PropertyView = require('component/property/property.view')
+const Property = require('component/property/property')
+const user = require('component/singletons/user-instance')
+const SortItemCollectionView = require('component/sort/sort.view')
+const ScheduleQueryView = require('component/query-schedule/query-schedule.view')
+const Common = require('js/Common')
+const properties = require('properties')
+const QueryScheduleModel = require('js/model/QuerySchedule');
+const ResultForm = properties.hasExperimentalEnabled() ? require('component/result-form/result-form') : {}
 
-    return Marionette.LayoutView.extend({
+module.exports = Marionette.LayoutView.extend({
         template: template,
         tagName: CustomElements.register('query-settings'),
         modelEvents: {},
@@ -57,8 +55,11 @@ define([
         initialize: function () {
             this.model = this.model._cloneOf ? store.getQueryById(this.model._cloneOf) : this.model;
             this.listenTo(this.model, 'change:sortField change:sortOrder change:src change:federation', Common.safeCallback(this.onBeforeShow));
-            this.resultFormCollection = ResultForm.getResultCollection();
-            this.listenTo(this.resultFormCollection, 'change:added', this.handleFormUpdate)
+            if(properties.hasExperimentalEnabled())
+            {
+                this.resultFormCollection = ResultForm.getResultCollection();
+                this.listenTo(this.resultFormCollection, 'change:added', this.handleFormUpdate)
+            }
         },
         handleFormUpdate: function(newForm) {
             this.renderResultForms(this.resultFormCollection.filteredList)
@@ -68,33 +69,33 @@ define([
             this.setupSrcDropdown();
             this.setupScheduling();
             this.turnOnEditing();
-            this.renderResultForms(this.resultFormCollection.filteredList)
+            if(properties.hasExperimentalEnabled())
+            {
+                this.renderResultForms(this.resultFormCollection.filteredList)
+            }
         },
         renderResultForms: function(resultTemplates){
-            if(resultTemplates == undefined)
-            {
-                resultTemplates = [];
-            }
+            resultTemplates = resultTemplates ? resultTemplates : []
             resultTemplates.push({
                 label: 'All Fields',
-                value: 'All Fields',
+                value: 'allFields',
                 id: 'All Fields',
                 descriptors: [],
                 description: 'All Fields'
             });
             resultTemplates =  _.uniq(resultTemplates, 'id');
             let lastIndex = resultTemplates.length - 1;
-            let detailLevelProperty = new Property({
+                let detailLevelProperty = new Property({
                 label: 'Result Form',
                 enum: resultTemplates,
                 value: [this.model.get('detail-level') || (resultTemplates && resultTemplates[lastIndex] && resultTemplates[lastIndex].value)],
                 showValidationIssues: false,
                 id: 'Result Form'
-            });
-            this.listenTo(detailLevelProperty, 'change:value', this.handleChangeDetailLevel);
-            this.resultForm.show(new PropertyView({
-                model: detailLevelProperty
-            }));
+                });
+                this.listenTo(detailLevelProperty, 'change:value', this.handleChangeDetailLevel);
+                this.resultForm.show(new PropertyView({
+                    model: detailLevelProperty
+                }));
             this.resultForm.currentView.turnOnEditing();
         },
         handleChangeDetailLevel: function (model, values) {
@@ -135,9 +136,9 @@ define([
         turnOnEditing: function(){
             this.$el.addClass('is-editing');
             this.regionManager.forEach(function(region){
-                 if (region.currentView && region.currentView.turnOnEditing){
-                     region.currentView.turnOnEditing();
-                 }
+                if (region.currentView && region.currentView.turnOnEditing) {
+                    region.currentView.turnOnEditing();
+                }
             });
             this.focus();
         },
@@ -170,7 +171,7 @@ define([
             }
             const sorts = this.settingsSortField.currentView.collection.toJSON();
             let detailLevel = this.resultForm.currentView && this.resultForm.currentView.model.get('value')[0]
-            if (detailLevel && detailLevel === 'All Fields') {
+            if (detailLevel && detailLevel === 'allFields') {
                 detailLevel = undefined;
             }
             const scheduleModel = this.settingsSchedule.currentView.getSchedulingConfiguration();
@@ -202,4 +203,3 @@ define([
             this.$el.trigger('closeDropdown.' + CustomElements.getNamespace());
         }
     });
-});

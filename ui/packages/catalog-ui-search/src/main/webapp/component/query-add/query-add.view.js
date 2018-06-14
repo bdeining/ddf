@@ -18,7 +18,6 @@ const Marionette = require('marionette');
 const template = require('./query-add.hbs');
 const CustomElements = require('js/CustomElements');
 const QueryBasic = require('component/query-basic/query-basic.view');
-const QueryResult = require('component/result-form/result-form.view');
 const QueryAdvanced = require('component/query-advanced/query-advanced.view');
 const QueryTitle = require('component/query-title/query-title.view');
 const QueryAdhoc = require('component/query-adhoc/query-adhoc.view');
@@ -30,9 +29,11 @@ const wreqr = require('wreqr');
 const user = require('component/singletons/user-instance');
 const cql = require('js/cql');
 const announcement = require('component/announcement');
-const lightboxResultInstance = require('component/lightbox/result/lightbox.result.view');
 const SearchFormModel = require('component/search-form/search-form.js');
+const properties = require('properties')
+const lightboxResultInstance = require('component/lightbox/result/lightbox.result.view');
 const lightboxInstance = lightboxResultInstance.generateNewLightbox();
+const QueryResult = properties.hasExperimentalEnabled() ? require('component/result-form/result-form.view') : {}
 
 
 module.exports = Marionette.LayoutView.extend({
@@ -52,6 +53,7 @@ module.exports = Marionette.LayoutView.extend({
     initialize: function () {
         this.model = new Query.Model();
         this.listenTo(this.model, 'resetToDefaults change:type', this.reshow);
+        this.listenTo(this.model, 'closeDropdown', this.closeDropdown);
         this.listenForSave();
     },
     reshow: function() {
@@ -71,10 +73,6 @@ module.exports = Marionette.LayoutView.extend({
                 break;
             case 'custom':
                 this.showCustom();
-                break;
-            case 'newResult': //pass through case statement
-            case 'result':
-                this.showResult();
                 break;
         }
     },
@@ -102,15 +100,6 @@ module.exports = Marionette.LayoutView.extend({
     showBasic: function () {
         this.queryContent.show(new QueryBasic({
             model: this.model
-        }));
-    },
-    showResult: function () {
-        this.$el.trigger('closeDropdown.'+CustomElements.getNamespace());
-        lightboxInstance.model.updateTitle(this.model.get('resultTitle'));
-        lightboxInstance.model.open();
-        lightboxInstance.$el.addClass('is-result-form');
-        lightboxInstance.lightboxContent.show(new QueryResult({
-                model: this.model,
         }));
     },
     handleEditOnShow: function () {
@@ -150,9 +139,8 @@ module.exports = Marionette.LayoutView.extend({
                         src: (userDefaultTemplate['querySettings'] && userDefaultTemplate['querySettings'].src) || '',
                         federation: (userDefaultTemplate['querySettings'] && userDefaultTemplate['querySettings'].federation) || 'enterprise',
                         sorts: sorts, 
-                        'detail-level': (userDefaultTemplate['querySettings'] && userDefaultTemplate['querySettings']['detail-level']) || 'All Fields',
-                        accessGroups: userDefaultTemplate['accessGroups'],
-                        accessIndividuals: userDefaultTemplate['accessIndividuals']});
+                        'detail-level': (userDefaultTemplate['querySettings'] && userDefaultTemplate['querySettings']['detail-level']) || 'allFields'
+                    });
 
             this.showCustom();
         }
@@ -166,14 +154,13 @@ module.exports = Marionette.LayoutView.extend({
         this.onBeforeShow();
     },
     save: function () {
-        //A new form is not necessarily a finished query, so skip saving the rest of the normal stuff
+        this.queryContent.currentView.save();
+        this.queryTitle.currentView.save();
         if (this.$el.hasClass('is-form-builder')) {
             this.saveTemplateToBackend();
             this.$el.trigger('closeDropdown.' + CustomElements.getNamespace());
             return;
         }
-        this.queryContent.currentView.save();
-        this.queryTitle.currentView.save();
         if (store.getCurrentQueries().get(this.model) === undefined) {
             store.getCurrentQueries().add(this.model);
         }
@@ -197,7 +184,7 @@ module.exports = Marionette.LayoutView.extend({
                 }),
                 'change:choice',
                 function (confirmation) {
-                    var choice = confirmation.get('choice');
+                   var choice = confirmation.get('choice');
                     if (choice === true) {
                         var loadingview = new LoadingView();
                         store.get('workspaces').once('sync', function(workspace, resp, options) {
@@ -219,16 +206,16 @@ module.exports = Marionette.LayoutView.extend({
         }
     },
     getQueryAsQueryTemplate: function() {
-        let formParameters = this.queryContent.currentView.serializeTemplateParameters();
+        const formModel = this.model.get('associatedFormModel') || new SearchFormModel();
+        const formParameters = this.queryContent.currentView.serializeTemplateParameters();
         let filterTree = cql.simplify(formParameters.filterTree || {});
         let filterSettings = formParameters.filterSettings || {};
-        let formModel = this.model.get('associatedFormModel') || new SearchFormModel();
         if (filterTree.filters && filterTree.filters.length === 1) {
             filterTree = filterTree.filters[0];
         }
         filterSettings.sorts = filterSettings.sorts.filter(sort => sort.attribute && sort.direction)
             .map(sort => sort.attribute + ',' + sort.direction);
-        let filterTemplate = {
+        return {
             filterTemplate: filterTree,
             accessIndividuals: formModel.get('accessIndividuals'),
             accessGroups: formModel.get('accessGroups'),
@@ -240,7 +227,6 @@ module.exports = Marionette.LayoutView.extend({
             owner: formModel.get('owner'),
             querySettings: filterSettings
         }
-        return filterTemplate;
     },
     saveTemplateToBackend: function() {
         let loadingView = new LoadingView();
@@ -254,42 +240,16 @@ module.exports = Marionette.LayoutView.extend({
             customErrorHandling: true
         })
         .done((data, textStatus, jqxhr) => {
-            announcement.announce({
-                title: 'Saved!',
-                message: 'Search form has been saved.',
-                type: 'success'
-            });
-
-            let queryTemplate = _this.getQueryAsQueryTemplate();
-            let sorts = queryTemplate['querySettings'] && queryTemplate['querySettings'].sorts;
-
-            if (sorts) {
-                sorts = sorts.map(sort => ({ attribute: sort.split(',')[0], direction: sort.split(',')[1] }));
-
-            queryTemplate = {
-                type: 'custom',
-                name: queryTemplate['title'],
-                filterTemplate: JSON.stringify(queryTemplate['filterTemplate']),
-                src: (queryTemplate['querySettings'] && queryTemplate['querySettings'].src) || '',
-                federation: (queryTemplate['querySettings'] && queryTemplate['querySettings'].federation) || 'enterprise',
-                querySettings: sorts, 
-                'detail-level': (queryTemplate['querySettings'] && queryTemplate['querySettings']['detail-level']) || 'All Fields',
-                accessGroups: queryTemplate['accessGroups'],
-                accessIndividuals: queryTemplate['accessIndividuals']
-            };
-
-            _user.getQuerySettings().set({
-                template: queryTemplate
-            });
-
-            _user.savePreferences();
-        }})
+            _this.model.set({
+                type: 'custom'
+            })
+        })
         .fail((jqxhr, textStatus, errorThrown) => {
             announcement.announce({
-                title: 'Error!',
-                message: 'Search form failed to be saved.',
+                title: 'Search Form Failed to be Saved',
+                message: jqxhr.responseJSON.message,
                 type: 'error'
-            });
+            }, 2500);
         })
         .always(() => {
             loadingView.remove();
@@ -307,5 +267,8 @@ module.exports = Marionette.LayoutView.extend({
             .on('saveQuery.' + CustomElements.getNamespace(), function (e) {
                 this.saveRun();
             }.bind(this));
+    },
+    closeDropdown: function() {
+        this.$el.trigger('closeDropdown.' + CustomElements.getNamespace());
     }
 });
