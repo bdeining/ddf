@@ -37,6 +37,9 @@ require('behaviors/button.behavior')
 require('behaviors/dropdown.behavior')
 const HandleBarsHelpers = require('js/HandlebarsHelpers')
 const ResultLinkView = require('component/result-link/result-link.view')
+import StereoPairs, {
+  hasStereoPair,
+} from 'react-component/presentation/stereo-pairs'
 
 module.exports = Marionette.LayoutView.extend({
   template(data) {
@@ -149,6 +152,17 @@ module.exports = Marionette.LayoutView.extend({
                 ''
               )}
             </div>
+            {hasStereoPair(this.model) ? (
+              <button
+                style={{
+                  width: '100%',
+                  fontSize: '1rem',
+                }}
+                className="stereo-pairs is-button is-neutral"
+              >
+                View Stereo Pair
+              </button>
+            ) : null}
             <div className="content-footer">
               <div className="result-validation">
                 {data.hasError ? (
@@ -222,6 +236,7 @@ module.exports = Marionette.LayoutView.extend({
     resultLink: '.result-link',
   },
   behaviors() {
+    const options = this.options
     return {
       button: {},
       dropdown: {
@@ -243,6 +258,19 @@ module.exports = Marionette.LayoutView.extend({
             viewOptions: {
               model: new Backbone.Collection([this.options.model]),
             },
+          },
+          {
+            selector: '.stereo-pairs',
+            view: Marionette.LayoutView.extend({
+              template() {
+                return (
+                  <StereoPairs
+                    model={options.model}
+                    selectionInterface={options.selectionInterface}
+                  />
+                )
+              },
+            }),
           },
         ],
       },
