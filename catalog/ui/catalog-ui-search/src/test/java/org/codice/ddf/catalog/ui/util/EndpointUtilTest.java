@@ -41,7 +41,6 @@ import ddf.catalog.filter.FilterAdapter;
 import ddf.catalog.filter.FilterBuilder;
 import ddf.catalog.operation.QueryResponse;
 import ddf.catalog.operation.impl.QueryRequestImpl;
-
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
