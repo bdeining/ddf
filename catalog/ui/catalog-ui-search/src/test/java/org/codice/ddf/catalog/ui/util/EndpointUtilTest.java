@@ -17,7 +17,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
@@ -205,12 +204,6 @@ public class EndpointUtilTest {
   }
 
   @Test
-  public void testParseDateEmptyString() {
-    Serializable serializable = endpointUtil.parseDate("");
-    assertThat(serializable, nullValue());
-  }
-
-  @Test
   public void testCopyAttributes() {
 
     AttributeDescriptor firstAttributeDescriptor = mock(AttributeDescriptor.class);
@@ -242,6 +235,12 @@ public class EndpointUtilTest {
     assertThat(
         Collections.singletonList(secondValue),
         is(destinationMetacard.getAttribute(secondAttributeDescriptor.getName()).getValues()));
+  }
+
+  @Test
+  public void testParseDateEmptyString() {
+    Serializable serializable = endpointUtil.parseDate("");
+    assertThat(serializable, nullValue());
   }
 
   @Test
@@ -293,14 +292,8 @@ public class EndpointUtilTest {
   }
 
   @Test
-  public void testParseDateEmptyString() {
-    Instant dateConverted = (Instant) endpointUtil.parseDate("");
-    assertNull(dateConverted);
-  }
-
-  @Test
   public void testParseDateWhiteSpaceString() {
     Instant dateConverted = (Instant) endpointUtil.parseDate("  ");
-    assertNull(dateConverted);
+    assertThat(dateConverted, nullValue());
   }
 }
