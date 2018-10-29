@@ -42,6 +42,8 @@ public class SchemaFields {
 
   public static final String TEXT_SUFFIX = "_txt";
 
+  public static final String WHITESPACE_TEXT_SUFFIX = "_ws";
+
   public static final String XML_SUFFIX = "_xml";
 
   public static final String DATE_SUFFIX = "_tdt";
@@ -60,7 +62,7 @@ public class SchemaFields {
 
   public static final String METACARD_TYPE_OBJECT_FIELD_NAME = "metacard_type" + OBJECT_SUFFIX;
 
-  public static final String SORT_SUFFIX = "_sort";
+  public static final String SORT_KEY_SUFFIX = "_sk";
 
   protected static final Map<String, AttributeFormat> SUFFIX_TO_FORMAT_MAP;
 

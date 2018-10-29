@@ -27,7 +27,6 @@ import static org.apache.solr.spelling.suggest.SuggesterParams.SUGGEST_CONTEXT_F
 import static org.apache.solr.spelling.suggest.SuggesterParams.SUGGEST_DICT;
 import static org.apache.solr.spelling.suggest.SuggesterParams.SUGGEST_Q;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import ddf.catalog.data.Attribute;
 import ddf.catalog.data.AttributeType;
@@ -92,7 +91,8 @@ public class SolrMetacardClientImpl implements SolrMetacardClient {
 
   private static final String DISTANCE_SORT_FIELD = "_distance_";
 
-  private static final String GEOMETRY_FIELD = Metacard.GEOGRAPHY + SchemaFields.GEO_SUFFIX;
+  private static final String GEOMETRY_SORT_FIELD =
+      Metacard.GEOGRAPHY + SchemaFields.GEO_SUFFIX + SchemaFields.SORT_KEY_SUFFIX;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SolrMetacardClientImpl.class);
 
@@ -104,8 +104,6 @@ public class SolrMetacardClientImpl implements SolrMetacardClient {
   public static final String SORT_FIELD_KEY = "sfield";
 
   public static final String POINT_KEY = "pt";
-
-  public static final int GET_BY_ID_LIMIT = 200;
 
   public static final String EXCLUDE_ATTRIBUTES = "excludeAttributes";
 
@@ -278,37 +276,19 @@ public class SolrMetacardClientImpl implements SolrMetacardClient {
       QueryResponse solrResponse = client.query(query, METHOD.POST);
       SolrDocumentList docs = solrResponse.getResults();
 
-      return createMetacards(docs);
+      List<Metacard> results = new ArrayList<>();
+      for (SolrDocument doc : docs) {
+        try {
+          results.add(createMetacard(doc));
+        } catch (MetacardCreationException e) {
+          throw new UnsupportedQueryException("Could not create metacard(s).", e);
+        }
+      }
+
+      return results;
     } catch (SolrServerException | SolrException | IOException e) {
       throw new UnsupportedQueryException("Could not complete solr query.", e);
     }
-  }
-
-  @Override
-  public List<Metacard> getIds(Set<String> ids) throws UnsupportedQueryException {
-    List<Metacard> metacards = new ArrayList<>(ids.size());
-    List<List<String>> partitions = Lists.partition(new ArrayList<>(ids), GET_BY_ID_LIMIT);
-    for (List<String> partition : partitions) {
-      try {
-        SolrDocumentList page = client.getById(partition);
-        metacards.addAll(createMetacards(page));
-      } catch (SolrServerException | SolrException | IOException e) {
-        throw new UnsupportedQueryException("Could not complete solr query.", e);
-      }
-    }
-    return metacards;
-  }
-
-  private List<Metacard> createMetacards(SolrDocumentList docs) throws UnsupportedQueryException {
-    List<Metacard> results = new ArrayList<>(docs.size());
-    for (SolrDocument doc : docs) {
-      try {
-        results.add(createMetacard(doc));
-      } catch (MetacardCreationException e) {
-        throw new UnsupportedQueryException("Could not create metacard(s).", e);
-      }
-    }
-    return results;
   }
 
   @Override
@@ -575,7 +555,7 @@ public class SolrMetacardClientImpl implements SolrMetacardClient {
       if (Result.RELEVANCE.equals(sortProperty)) {
         query.addSort(RELEVANCE_SORT_FIELD, order);
       } else if (Result.DISTANCE.equals(sortProperty)) {
-        addDistanceSort(query, resolver.getSortKey(GEOMETRY_FIELD), order, solrFilterDelegate);
+        addDistanceSort(query, GEOMETRY_SORT_FIELD, order, solrFilterDelegate);
       } else if (sortProperty.equals(Result.TEMPORAL)) {
         query.addSort(
             resolver.getSortKey(

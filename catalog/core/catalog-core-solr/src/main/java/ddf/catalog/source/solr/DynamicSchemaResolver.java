@@ -27,6 +27,7 @@ import ddf.catalog.data.AttributeType.AttributeFormat;
 import ddf.catalog.data.Metacard;
 import ddf.catalog.data.MetacardCreationException;
 import ddf.catalog.data.MetacardType;
+import ddf.catalog.data.Result;
 import ddf.catalog.data.impl.AttributeDescriptorImpl;
 import ddf.catalog.data.impl.BasicTypes;
 import ddf.catalog.data.impl.MetacardImpl;
@@ -319,11 +320,17 @@ public class DynamicSchemaResolver {
             attributeValues = byteArrays;
           }
 
-          if (AttributeFormat.GEOMETRY.equals(format)
-              && solrInputDocument.getFieldValue(formatIndexName + SchemaFields.SORT_SUFFIX)
-                  == null) {
-            solrInputDocument.addField(
-                formatIndexName + SchemaFields.SORT_SUFFIX, createCenterPoint(attributeValues));
+          if (solrInputDocument.getFieldValue(formatIndexName + SchemaFields.SORT_KEY_SUFFIX)
+              == null) {
+            if (AttributeFormat.GEOMETRY.equals(format)) {
+              solrInputDocument.addField(
+                  formatIndexName + SchemaFields.SORT_KEY_SUFFIX,
+                  createCenterPoint(attributeValues));
+            } else if (!(AttributeFormat.BINARY.equals(format)
+                || AttributeFormat.OBJECT.equals(format))) {
+              solrInputDocument.addField(
+                  formatIndexName + SchemaFields.SORT_KEY_SUFFIX, attributeValues.get(0));
+            }
           }
 
           // Prevent adding a field already on document
@@ -545,7 +552,8 @@ public class DynamicSchemaResolver {
   }
 
   public boolean isPrivateField(String solrFieldName) {
-    return PRIVATE_SOLR_FIELDS.contains(solrFieldName);
+    return PRIVATE_SOLR_FIELDS.contains(solrFieldName)
+        || solrFieldName.endsWith(SchemaFields.SORT_KEY_SUFFIX);
   }
 
   /**
@@ -665,6 +673,10 @@ public class DynamicSchemaResolver {
   public String getCaseSensitiveField(String mappedPropertyName) {
     // TODO We can check if this field really does exist
     return mappedPropertyName + SchemaFields.HAS_CASE;
+  }
+
+  public String getWhitespaceTokenizedField(String mappedPropertyName) {
+    return mappedPropertyName + SchemaFields.WHITESPACE_TEXT_SUFFIX;
   }
 
   protected String getSpecialIndexSuffix(AttributeFormat format) {
@@ -849,8 +861,11 @@ public class DynamicSchemaResolver {
   }
 
   public String getSortKey(String field) {
-    if (field.endsWith(SchemaFields.GEO_SUFFIX)) {
-      field = field + SchemaFields.SORT_SUFFIX;
+    if (!(field.endsWith(SchemaFields.SORT_KEY_SUFFIX)
+        || Result.DISTANCE.equals(field)
+        || Result.RELEVANCE.equals(field)
+        || Result.TEMPORAL.equals(field))) {
+      field = field + SchemaFields.SORT_KEY_SUFFIX;
     }
     return field;
   }
