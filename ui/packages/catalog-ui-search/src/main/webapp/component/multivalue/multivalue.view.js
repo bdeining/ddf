@@ -63,5 +63,11 @@ define([
     addNewValue: function() {
       this.values.currentView.addNewValue(this.model)
     },
+    isValid: function() {
+      return this.values.currentView.children.every(function(valueView) {
+        const inputView = valueView.input.currentView
+        return inputView.isValid()
+      })
+    },
   })
 })
