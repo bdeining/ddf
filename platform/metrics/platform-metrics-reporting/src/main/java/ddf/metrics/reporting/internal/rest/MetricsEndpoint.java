@@ -74,7 +74,7 @@ public class MetricsEndpoint {
   public static final String DEFAULT_METRICS_DIR =
       new AbsolutePathResolver("data" + File.separator + "metrics" + File.separator).getPath();
 
-  static final Map<String, Long> TIME_RANGES = new HashMap<String, Long>();
+  static final Map<String, Long> TIME_RANGES = new HashMap<>();
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MetricsEndpoint.class);
 
@@ -119,7 +119,8 @@ public class MetricsEndpoint {
     TIME_RANGES.put("1y", ONE_YEAR_IN_SECONDS);
   }
 
-  private final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+  private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT_THREAD_LOCAL =
+      ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ"));
 
   private static final String DEFAULTED_TO_ENDTIME = "Defaulted endTime to {}";
 
@@ -204,7 +205,7 @@ public class MetricsEndpoint {
 
       // Set endDate to new calculated endTime (so that endDate is displayed properly
       // in graph's title)
-      endDate = dateFormatter.format(now.getTime());
+      endDate = DATE_FORMAT_THREAD_LOCAL.get().format(now.getTime());
     }
 
     long startTime;
@@ -219,7 +220,7 @@ public class MetricsEndpoint {
       // in graph's title)
       Calendar cal = getCalendar();
       cal.setTimeInMillis(startTime * MILLISECONDS_PER_SECOND);
-      startDate = dateFormatter.format(cal.getTime());
+      startDate = DATE_FORMAT_THREAD_LOCAL.get().format(cal.getTime());
     } else {
       // Default start time for metrics graphing to end time last 24 hours (in seconds)
       startTime = endTime - ONE_DAY_IN_SECONDS;
@@ -229,7 +230,7 @@ public class MetricsEndpoint {
       // in graph's title)
       Calendar cal = getCalendar();
       cal.setTimeInMillis(startTime * MILLISECONDS_PER_SECOND);
-      startDate = dateFormatter.format(cal.getTime());
+      startDate = DATE_FORMAT_THREAD_LOCAL.get().format(cal.getTime());
     }
 
     LOGGER.trace("startDate = {},   endDate = {}", startDate, endDate);
@@ -420,7 +421,7 @@ public class MetricsEndpoint {
 
       // Set endDate to new calculated endTime (so that endDate is displayed properly
       // in graph's title)
-      endDate = dateFormatter.format(now.getTime());
+      endDate = DATE_FORMAT_THREAD_LOCAL.get().format(now.getTime());
     }
 
     long startTime;
@@ -435,7 +436,7 @@ public class MetricsEndpoint {
       // in graph's title)
       Calendar cal = getCalendar();
       cal.setTimeInMillis(startTime * MILLISECONDS_PER_SECOND);
-      startDate = dateFormatter.format(cal.getTime());
+      startDate = DATE_FORMAT_THREAD_LOCAL.get().format(cal.getTime());
     } else {
       // Default start time for metrics graphing to end time last 24 hours (in seconds)
       startTime = endTime - ONE_DAY_IN_SECONDS;
@@ -445,7 +446,7 @@ public class MetricsEndpoint {
       // in graph's title)
       Calendar cal = getCalendar();
       cal.setTimeInMillis(startTime * MILLISECONDS_PER_SECOND);
-      startDate = dateFormatter.format(cal.getTime());
+      startDate = DATE_FORMAT_THREAD_LOCAL.get().format(cal.getTime());
     }
 
     LOGGER.debug("startDate = {},   endDate = {}", startDate, endDate);
