@@ -50,7 +50,8 @@ public class DescriptionTemplateHelper {
               Metacard.THUMBNAIL,
               Metacard.CONTENT_TYPE_VERSION));
 
-  private DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+  private static final ThreadLocal<DateFormat> DATE_FORMAT_THREAD_LOCAL =
+      ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ"));
 
   private ActionProvider resourceActionProvider;
 
@@ -75,9 +76,9 @@ public class DescriptionTemplateHelper {
         return DatatypeConverter.printBase64Binary((byte[]) attribute.getValue());
       case DATE:
         if (attribute != null && attribute.getValue() != null) {
-          return dateFormat.format((Date) attribute.getValue());
+          return DATE_FORMAT_THREAD_LOCAL.get().format((Date) attribute.getValue());
         } else {
-          return dateFormat.format(new Date());
+          return DATE_FORMAT_THREAD_LOCAL.get().format(new Date());
         }
         // There is no way to prettyPrint these
       case GEOMETRY:
