@@ -17,7 +17,7 @@
     <parent>
         <groupId>ddf.platform.solr</groupId>
         <artifactId>platform-solr</artifactId>
-        <version>2.14.0-SNAPSHOT</version>
+        <version>2.14.0.100</version>
     </parent>
     <artifactId>solr-xpath</artifactId>
     <name>DDF :: Platform :: Solr :: XPath</name>
@@ -70,8 +70,7 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <ArtifactSizeEnforcerRule
-                                    implementation="org.codice.maven.artifactsize.ArtifactSizeEnforcerRule">
+                                <ArtifactSizeEnforcerRule implementation="org.codice.maven.artifactsize.ArtifactSizeEnforcerRule">
                                     <maxArtifactSize>4.7_MB</maxArtifactSize>
                                 </ArtifactSizeEnforcerRule>
                             </rules>
