@@ -13,11 +13,15 @@
  */
 package ddf.security.sts.claimsHandler;
 
-import org.apache.commons.lang.StringUtils;
-import org.forgerock.opendj.ldap.requests.BindRequest;
-import org.forgerock.opendj.ldap.requests.DigestMD5SASLBindRequest;
-import org.forgerock.opendj.ldap.requests.GSSAPISASLBindRequest;
-import org.forgerock.opendj.ldap.requests.Requests;
+import com.unboundid.ldap.sdk.BindRequest;
+import com.unboundid.ldap.sdk.DIGESTMD5BindRequest;
+import com.unboundid.ldap.sdk.DIGESTMD5BindRequestProperties;
+import com.unboundid.ldap.sdk.GSSAPIBindRequest;
+import com.unboundid.ldap.sdk.GSSAPIBindRequestProperties;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.PLAINBindRequest;
+import com.unboundid.ldap.sdk.SASLQualityOfProtection;
+import com.unboundid.ldap.sdk.SimpleBindRequest;
 
 public class BindMethodChooser {
 
@@ -26,34 +30,36 @@ public class BindMethodChooser {
       String bindUserDN,
       String bindUserCredentials,
       String realm,
-      String kdcAddress) {
+      String kdcAddress)
+      throws LDAPException {
     BindRequest request;
     switch (bindMethod) {
       case "Simple":
-        request = Requests.newSimpleBindRequest(bindUserDN, bindUserCredentials.toCharArray());
+        request = new SimpleBindRequest(bindUserDN, bindUserCredentials);
         break;
       case "SASL":
-        request = Requests.newPlainSASLBindRequest(bindUserDN, bindUserCredentials.toCharArray());
+        request = new PLAINBindRequest(bindUserDN, bindUserCredentials);
         break;
       case "GSSAPI SASL":
-        request = Requests.newGSSAPISASLBindRequest(bindUserDN, bindUserCredentials.toCharArray());
-        ((GSSAPISASLBindRequest) request).setRealm(realm);
-        ((GSSAPISASLBindRequest) request).setKDCAddress(kdcAddress);
+        GSSAPIBindRequestProperties gssapiBindRequestProperties =
+            new GSSAPIBindRequestProperties(bindUserDN, bindUserCredentials);
+        gssapiBindRequestProperties.setKDCAddress(kdcAddress);
+        gssapiBindRequestProperties.setRealm(realm);
+        request = new GSSAPIBindRequest(gssapiBindRequestProperties);
         break;
       case "Digest MD5 SASL":
-        request =
-            Requests.newDigestMD5SASLBindRequest(bindUserDN, bindUserCredentials.toCharArray());
-        ((DigestMD5SASLBindRequest) request).setCipher(DigestMD5SASLBindRequest.CIPHER_HIGH);
-        ((DigestMD5SASLBindRequest) request).getQOPs().clear();
-        ((DigestMD5SASLBindRequest) request).getQOPs().add(DigestMD5SASLBindRequest.QOP_AUTH_CONF);
-        ((DigestMD5SASLBindRequest) request).getQOPs().add(DigestMD5SASLBindRequest.QOP_AUTH_INT);
-        ((DigestMD5SASLBindRequest) request).getQOPs().add(DigestMD5SASLBindRequest.QOP_AUTH);
-        if (StringUtils.isNotEmpty(realm)) {
-          ((DigestMD5SASLBindRequest) request).setRealm(realm);
-        }
+        DIGESTMD5BindRequestProperties digestmd5BindRequestProperties =
+            new DIGESTMD5BindRequestProperties(bindUserDN, bindUserCredentials);
+        digestmd5BindRequestProperties.setAllowedQoP(
+            SASLQualityOfProtection.AUTH,
+            SASLQualityOfProtection.AUTH_CONF,
+            SASLQualityOfProtection.AUTH_INT);
+        digestmd5BindRequestProperties.setRealm(realm);
+        // setCipher(DigestMD5SASLBindRequest.CIPHER_HIGH);
+        request = new DIGESTMD5BindRequest(digestmd5BindRequestProperties);
         break;
       default:
-        request = Requests.newSimpleBindRequest(bindUserDN, bindUserCredentials.toCharArray());
+        request = new SimpleBindRequest(bindUserDN, bindUserCredentials);
         break;
     }
 

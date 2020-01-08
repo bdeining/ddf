@@ -14,6 +14,16 @@
 package ddf.security.sts.claimsHandler;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.unboundid.ldap.sdk.Attribute;
+import com.unboundid.ldap.sdk.BindRequest;
+import com.unboundid.ldap.sdk.BindResult;
+import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.ResultCode;
+import com.unboundid.ldap.sdk.SearchResult;
+import com.unboundid.ldap.sdk.SearchResultEntry;
+import com.unboundid.ldap.sdk.SearchScope;
+import com.unboundid.ldap.sdk.ServerSet;
 import ddf.security.claims.Claim;
 import ddf.security.claims.ClaimsCollection;
 import ddf.security.claims.ClaimsHandler;
@@ -25,17 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import javax.security.auth.x500.X500Principal;
-import org.forgerock.opendj.ldap.Attribute;
-import org.forgerock.opendj.ldap.ByteString;
-import org.forgerock.opendj.ldap.Connection;
-import org.forgerock.opendj.ldap.ConnectionFactory;
-import org.forgerock.opendj.ldap.LdapException;
-import org.forgerock.opendj.ldap.SearchResultReferenceIOException;
-import org.forgerock.opendj.ldap.SearchScope;
-import org.forgerock.opendj.ldap.requests.BindRequest;
-import org.forgerock.opendj.ldap.responses.BindResult;
-import org.forgerock.opendj.ldap.responses.SearchResultEntry;
-import org.forgerock.opendj.ldif.ConnectionEntryReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.filter.AndFilter;
@@ -48,7 +47,7 @@ public class LdapClaimsHandler implements ClaimsHandler {
 
   private String propertyFileLocation;
 
-  private ConnectionFactory connectionFactory;
+  private ServerSet connectionFactory;
 
   private String bindUserCredentials;
 
@@ -77,11 +76,11 @@ public class LdapClaimsHandler implements ClaimsHandler {
     this.attributeMapLoader = attributeMapLoader;
   }
 
-  public ConnectionFactory getLdapConnectionFactory() {
+  public ServerSet getLdapConnectionFactory() {
     return connectionFactory;
   }
 
-  public void setLdapConnectionFactory(ConnectionFactory connection) {
+  public void setLdapConnectionFactory(ServerSet connection) {
     this.connectionFactory = connection;
   }
 
@@ -151,85 +150,71 @@ public class LdapClaimsHandler implements ClaimsHandler {
     }
 
     ClaimsCollection claimsColl = new ClaimsCollectionImpl();
-    Connection connection = null;
+    LDAPConnection connection = null;
     try {
       AndFilter filter = new AndFilter();
       filter
           .and(new EqualsFilter("objectclass", this.getObjectClass()))
           .and(new EqualsFilter(this.getUserNameAttribute(), user));
 
-      List<String> searchAttributeList = new ArrayList<String>();
+      List<String> searchAttributeList = new ArrayList<>();
       for (Map.Entry<String, String> claimEntry : getClaimsLdapAttributeMapping().entrySet()) {
         searchAttributeList.add(claimEntry.getValue());
       }
 
-      String[] searchAttributes = null;
-      searchAttributes = searchAttributeList.toArray(new String[searchAttributeList.size()]);
+      String[] searchAttributes;
+      searchAttributes = searchAttributeList.toArray(new String[0]);
 
       connection = connectionFactory.getConnection();
       if (connection != null) {
         BindRequest request = selectBindMethod();
         BindResult bindResult = connection.bind(request);
-        if (bindResult.isSuccess()) {
+        if (bindResult.getResultCode() == ResultCode.SUCCESS) {
           String baseDN = attributeMapLoader.getBaseDN(principal, getUserBaseDN(), overrideCertDn);
           LOGGER.trace("Executing ldap search with base dn of {} and filter of {}", baseDN, filter);
 
-          ConnectionEntryReader entryReader =
-              connection.search(
-                  baseDN, SearchScope.WHOLE_SUBTREE, filter.toString(), searchAttributes);
+          SearchResult entryReader =
+              connection.search(baseDN, SearchScope.SUB, filter.toString(), searchAttributes);
 
-          SearchResultEntry entry;
-          while (entryReader.hasNext()) {
-            if (entryReader.isEntry()) {
-              entry = entryReader.readEntry();
-              for (Map.Entry<String, String> claimEntry :
-                  getClaimsLdapAttributeMapping().entrySet()) {
-                String claimType = claimEntry.getKey();
-                String ldapAttribute = claimEntry.getValue();
-                Attribute attr = entry.getAttribute(ldapAttribute);
-                if (attr == null) {
-                  LOGGER.trace("Claim '{}' is null", claimType);
-                } else {
-                  Claim claim = new ClaimImpl(claimType);
+          List<SearchResultEntry> searchResultEntries = entryReader.getSearchEntries();
 
-                  for (ByteString value : attr) {
-                    String itemValue = value.toString();
-                    if (this.isX500FilterEnabled()) {
-                      try {
-                        X500Principal x500p = new X500Principal(itemValue);
-                        itemValue = x500p.getName();
-                        int index = itemValue.indexOf('=');
-                        itemValue = itemValue.substring(index + 1, itemValue.indexOf(',', index));
-                      } catch (Exception ex) {
-                        // Ignore, not X500 compliant thus use the whole
-                        // string as the value
-                        LOGGER.debug("Not X500 compliant", ex);
-                      }
-                    }
-                    claim.addValue(itemValue);
+          for (SearchResultEntry searchResultEntry : searchResultEntries) {
+            for (Map.Entry<String, String> claimEntry :
+                getClaimsLdapAttributeMapping().entrySet()) {
+              String claimType = claimEntry.getKey();
+              String ldapAttribute = claimEntry.getValue();
+              Attribute attr = searchResultEntry.getAttribute(ldapAttribute);
+              if (attr == null) {
+                LOGGER.trace("Claim '{}' is null", claimType);
+              } else {
+                Claim claim = new ClaimImpl(claimType);
+                String itemValue = attr.getValue();
+                if (this.isX500FilterEnabled()) {
+                  try {
+                    X500Principal x500p = new X500Principal(itemValue);
+                    itemValue = x500p.getName();
+                    int index = itemValue.indexOf('=');
+                    itemValue = itemValue.substring(index + 1, itemValue.indexOf(',', index));
+                  } catch (Exception ex) {
+                    // Ignore, not X500 compliant thus use the whole
+                    // string as the value
+                    LOGGER.debug("Not X500 compliant", ex);
                   }
-
-                  claimsColl.add(claim);
+                  claim.addValue(itemValue);
                 }
+
+                claimsColl.add(claim);
               }
-            } else {
-              // Got a continuation reference
-              LOGGER.debug("Referral ignored while searching for user {}", user);
-              entryReader.readReference();
             }
           }
         } else {
           LOGGER.info("LDAP Connection failed.");
         }
       }
-    } catch (LdapException e) {
+    } catch (LDAPException e) {
       LOGGER.info(
           "Cannot connect to server, therefore unable to set user attributes. Set log level for \"ddf.security.sts.claimsHandler\" to DEBUG for more information");
       LOGGER.debug("Cannot connect to server, therefore unable to set user attributes.", e);
-    } catch (SearchResultReferenceIOException e) {
-      LOGGER.info(
-          "Unable to set user attributes. Set log level for \"ddf.security.sts.claimsHandler\" to DEBUG for more information");
-      LOGGER.debug("Unable to set user attributes.", e);
     } finally {
       if (connection != null) {
         connection.close();
@@ -239,7 +224,7 @@ public class LdapClaimsHandler implements ClaimsHandler {
   }
 
   public void disconnect() {
-    connectionFactory.close();
+    // connectionFactory.close();
   }
 
   public void setBindUserDN(String bindUserDN) {
@@ -267,7 +252,7 @@ public class LdapClaimsHandler implements ClaimsHandler {
   }
 
   @VisibleForTesting
-  BindRequest selectBindMethod() {
+  BindRequest selectBindMethod() throws LDAPException {
     return BindMethodChooser.selectBindMethod(
         bindMethod, bindUserDN, bindUserCredentials, kerberosRealm, kdcAddress);
   }

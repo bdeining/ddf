@@ -13,6 +13,16 @@
  */
 package ddf.security.sts.claimsHandler;
 
+import com.unboundid.ldap.sdk.Attribute;
+import com.unboundid.ldap.sdk.BindRequest;
+import com.unboundid.ldap.sdk.BindResult;
+import com.unboundid.ldap.sdk.LDAPConnection;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.ResultCode;
+import com.unboundid.ldap.sdk.SearchResult;
+import com.unboundid.ldap.sdk.SearchResultEntry;
+import com.unboundid.ldap.sdk.SearchScope;
+import com.unboundid.ldap.sdk.ServerSet;
 import ddf.security.claims.Claim;
 import ddf.security.claims.ClaimsCollection;
 import ddf.security.claims.ClaimsHandler;
@@ -20,18 +30,8 @@ import ddf.security.claims.ClaimsParameters;
 import ddf.security.claims.impl.ClaimImpl;
 import ddf.security.claims.impl.ClaimsCollectionImpl;
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
-import org.forgerock.opendj.ldap.Attribute;
-import org.forgerock.opendj.ldap.ByteString;
-import org.forgerock.opendj.ldap.Connection;
-import org.forgerock.opendj.ldap.ConnectionFactory;
-import org.forgerock.opendj.ldap.LdapException;
-import org.forgerock.opendj.ldap.SearchResultReferenceIOException;
-import org.forgerock.opendj.ldap.SearchScope;
-import org.forgerock.opendj.ldap.requests.BindRequest;
-import org.forgerock.opendj.ldap.responses.BindResult;
-import org.forgerock.opendj.ldap.responses.SearchResultEntry;
-import org.forgerock.opendj.ldif.ConnectionEntryReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.filter.AndFilter;
@@ -48,7 +48,7 @@ public class RoleClaimsHandler implements ClaimsHandler {
 
   private Map<String, String> claimsLdapAttributeMapping;
 
-  private ConnectionFactory connectionFactory;
+  private ServerSet connectionFactory;
 
   private String delimiter = ";";
 
@@ -129,11 +129,11 @@ public class RoleClaimsHandler implements ClaimsHandler {
     this.groupBaseDn = groupBaseDn;
   }
 
-  public ConnectionFactory getLdapConnectionFactory() {
+  public ServerSet getLdapConnectionFactory() {
     return connectionFactory;
   }
 
-  public void setLdapConnectionFactory(ConnectionFactory connection) {
+  public void setLdapConnectionFactory(ServerSet connection) {
     this.connectionFactory = connection;
   }
 
@@ -201,7 +201,7 @@ public class RoleClaimsHandler implements ClaimsHandler {
   public ClaimsCollection retrieveClaims(ClaimsParameters parameters) {
     String[] attributes = {groupNameAttribute, memberNameAttribute};
     ClaimsCollection claimsColl = new ClaimsCollectionImpl();
-    Connection connection = null;
+    LDAPConnection connection = null;
     try {
       Principal principal = parameters.getPrincipal();
 
@@ -226,29 +226,20 @@ public class RoleClaimsHandler implements ClaimsHandler {
         String baseDN = attributeMapLoader.getBaseDN(principal, userBaseDn, overrideCertDn);
         AndFilter filter = new AndFilter();
         filter.and(new EqualsFilter(this.getLoginUserAttribute(), user));
-        ConnectionEntryReader entryReader =
-            connection.search(
-                baseDN, SearchScope.WHOLE_SUBTREE, filter.toString(), membershipUserAttribute);
+        SearchResult entryReader =
+            connection.search(baseDN, SearchScope.SUB, filter.toString(), membershipUserAttribute);
         String userDN = String.format("%s=%s,%s", loginUserAttribute, user, baseDN);
         String specificUserBaseDN = baseDN;
-        while (entryReader.hasNext()) {
-          if (entryReader.isEntry()) {
-            SearchResultEntry entry = entryReader.readEntry();
 
-            userDN = entry.getName().toString();
-            specificUserBaseDN = userDN.substring(userDN.indexOf(',') + 1);
-            if (!membershipUserAttribute.equals(loginUserAttribute)) {
-              Attribute attr = entry.getAttribute(membershipUserAttribute);
-              if (attr != null) {
-                for (ByteString value : attr) {
-                  membershipValue = value.toString();
-                }
-              }
+        List<SearchResultEntry> searchResultEntryList = entryReader.getSearchEntries();
+        for (SearchResultEntry searchResultEntry : searchResultEntryList) {
+          userDN = searchResultEntry.getDN();
+          specificUserBaseDN = userDN.substring(userDN.indexOf(',') + 1);
+          if (!membershipUserAttribute.equals(loginUserAttribute)) {
+            Attribute attr = searchResultEntry.getAttribute(membershipUserAttribute);
+            if (attr != null) {
+              membershipValue = attr.getValue();
             }
-          } else {
-            // Got a continuation reference
-            LOGGER.debug("Referral ignored while searching for user {}", user);
-            entryReader.readReference();
           }
         }
 
@@ -267,49 +258,33 @@ public class RoleClaimsHandler implements ClaimsHandler {
                                 + specificUserBaseDN))
                     .or(new EqualsFilter(getMemberNameAttribute(), userDN)));
 
-        if (bindResult.isSuccess()) {
+        if (bindResult.getResultCode() == ResultCode.SUCCESS) {
           LOGGER.trace(
               "Executing ldap search with base dn of {} and filter of {}", groupBaseDn, filter);
 
           entryReader =
-              connection.search(
-                  groupBaseDn, SearchScope.WHOLE_SUBTREE, filter.toString(), attributes);
+              connection.search(groupBaseDn, SearchScope.SUB, filter.toString(), attributes);
 
-          SearchResultEntry entry;
-          while (entryReader.hasNext()) {
-            if (entryReader.isEntry()) {
-              entry = entryReader.readEntry();
-
-              Attribute attr = entry.getAttribute(groupNameAttribute);
-              if (attr == null) {
-                LOGGER.trace("Claim '{}' is null", roleClaimType);
-              } else {
-                Claim claim = new ClaimImpl(roleClaimType);
-
-                for (ByteString value : attr) {
-                  String itemValue = value.toString();
-                  claim.addValue(itemValue);
-                }
-                claimsColl.add(claim);
-              }
+          for (SearchResultEntry searchResultEntry : entryReader.getSearchEntries()) {
+            Attribute attr = searchResultEntry.getAttribute(groupNameAttribute);
+            if (attr == null) {
+              LOGGER.trace("Claim '{}' is null", roleClaimType);
             } else {
-              // Got a continuation reference
-              LOGGER.debug("Referral ignored while searching for user {}", user);
-              entryReader.readReference();
+              Claim claim = new ClaimImpl(roleClaimType);
+
+              String itemValue = attr.getValue();
+              claim.addValue(itemValue);
+              claimsColl.add(claim);
             }
           }
-        } else {
-          LOGGER.info("LDAP Connection failed.");
         }
+      } else {
+        LOGGER.info("LDAP Connection failed.");
       }
-    } catch (LdapException e) {
+    } catch (LDAPException e) {
       LOGGER.info(
           "Cannot connect to server, therefore unable to set role claims. Set log level for \"ddf.security.sts.claimsHandler\" to DEBUG for more information.");
       LOGGER.debug("Cannot connect to server, therefore unable to set role claims.", e);
-    } catch (SearchResultReferenceIOException e) {
-      LOGGER.info(
-          "Unable to set role claims. Set log level for \"ddf.security.sts.claimsHandler\" to DEBUG for more information.");
-      LOGGER.debug("Unable to set role claims.", e);
     } finally {
       if (connection != null) {
         connection.close();
@@ -319,7 +294,7 @@ public class RoleClaimsHandler implements ClaimsHandler {
   }
 
   public void disconnect() {
-    connectionFactory.close();
+    // connectionFactory.close();
   }
 
   public void setBindUserDN(String bindUserDN) {

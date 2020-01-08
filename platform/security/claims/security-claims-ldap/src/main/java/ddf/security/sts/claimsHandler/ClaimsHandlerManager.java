@@ -13,6 +13,11 @@
  */
 package ddf.security.sts.claimsHandler;
 
+import com.unboundid.ldap.sdk.LDAPConnectionOptions;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.LDAPURL;
+import com.unboundid.ldap.sdk.RoundRobinServerSet;
+import com.unboundid.ldap.sdk.ServerSet;
 import ddf.security.claims.ClaimsHandler;
 import ddf.security.common.audit.SecurityLogger;
 import ddf.security.encryption.EncryptionService;
@@ -35,13 +40,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.codice.ddf.configuration.PropertyResolver;
-import org.forgerock.opendj.ldap.ConnectionFactory;
-import org.forgerock.opendj.ldap.Connections;
-import org.forgerock.opendj.ldap.LDAPConnectionFactory;
-import org.forgerock.opendj.ldap.LDAPUrl;
-import org.forgerock.opendj.ldap.LdapException;
-import org.forgerock.util.Options;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
@@ -165,10 +163,8 @@ public class ClaimsHandlerManager {
       if (encryptService != null) {
         password = encryptService.decryptValue(password);
       }
-      ConnectionFactory connection1 =
-          createConnectionFactory(urls, startTls, loadBalancingAlgorithm);
-      ConnectionFactory connection2 =
-          createConnectionFactory(urls, startTls, loadBalancingAlgorithm);
+      ServerSet connection1 = createConnectionFactory(urls, startTls, loadBalancingAlgorithm);
+      ServerSet connection2 = createConnectionFactory(urls, startTls, loadBalancingAlgorithm);
       registerRoleClaimsHandler(
           connection1,
           propertyFileLocation,
@@ -217,38 +213,43 @@ public class ClaimsHandlerManager {
 
   public void destroy() {}
 
-  protected ConnectionFactory createConnectionFactory(
-      List<String> urls, Boolean startTls, String loadBalancingAlgorithm) throws LdapException {
-    List<ConnectionFactory> connectionFactories = new ArrayList<>();
-
-    for (String singleUrl : urls) {
-      connectionFactories.add(
-          createLdapConnectionFactory(new PropertyResolver(singleUrl).toString(), startTls));
-    }
-
-    Options options = Options.defaultOptions();
+  protected ServerSet createConnectionFactory(
+      List<String> urls, Boolean startTls, String loadBalancingAlgorithm) throws LDAPException {
     if (FAILOVER.equalsIgnoreCase(loadBalancingAlgorithm)) {
-      return Connections.newFailoverLoadBalancer(connectionFactories, options);
+      return createRoundRobinServerSet(urls, startTls);
     } else {
-      return Connections.newRoundRobinLoadBalancer(connectionFactories, options);
+      return createRoundRobinServerSet(urls, startTls);
     }
   }
 
-  protected LDAPConnectionFactory createLdapConnectionFactory(String url, Boolean startTls)
-      throws LdapException {
-    boolean useSsl = url.startsWith("ldaps");
-    boolean useTls = !url.startsWith("ldaps") && startTls;
+  protected ServerSet createRoundRobinServerSet(List<String> urls, Boolean startTls)
+      throws LDAPException {
 
-    Options lo = Options.defaultOptions();
+    String[] addresses = new String[urls.size()];
+    int[] ports = new int[urls.size()];
+
+    for (int i = 0; i < urls.size(); i++) {
+      String url = urls.get(i);
+      addresses[i] = url.substring(0, url.lastIndexOf(':'));
+      // todo catch exception
+      ports[i] = Integer.parseInt(url.substring(url.lastIndexOf(':') + 1));
+    }
+
+    boolean useSsl = urls.get(0).startsWith("ldaps");
+    boolean useTls = !urls.get(0).startsWith("ldaps") && startTls;
+
+    LDAPConnectionOptions lo = new LDAPConnectionOptions();
+    SSLContext sslContext = null;
+
     try {
       if (useSsl || useTls) {
-        lo.set(LDAPConnectionFactory.SSL_CONTEXT, SSLContext.getDefault());
+        sslContext = SSLContext.getDefault();
       }
     } catch (GeneralSecurityException e) {
       LOGGER.info("Error encountered while configuring SSL. Secure connection will fail.", e);
     }
 
-    lo.set(LDAPConnectionFactory.SSL_USE_STARTTLS, useTls);
+    /*    lo.set(LDAPConnectionFactory.SSL_USE_STARTTLS, useTls);
     lo.set(
         LDAPConnectionFactory.SSL_ENABLED_CIPHER_SUITES,
         Arrays.asList(System.getProperty("https.cipherSuites").split(",")));
@@ -257,15 +258,16 @@ public class ClaimsHandlerManager {
         Arrays.asList(System.getProperty("https.protocols").split(",")));
     lo.set(
         LDAPConnectionFactory.TRANSPORT_PROVIDER_CLASS_LOADER,
-        ClaimsHandlerManager.class.getClassLoader());
+        ClaimsHandlerManager.class.getClassLoader());*/
 
-    LDAPUrl parsedUrl = LDAPUrl.valueOf(url);
-    String host = parsedUrl.getHost();
-    Integer port = parsedUrl.getPort();
+    for (String url : urls) {
+      LDAPURL parsedUrl = new LDAPURL(url);
+      String host = parsedUrl.getHost();
+      auditRemoteConnection(host);
+    }
 
-    auditRemoteConnection(host);
-
-    return new LDAPConnectionFactory(host, port, lo);
+    return new RoundRobinServerSet(
+        addresses, ports, sslContext != null ? sslContext.getSocketFactory() : null, lo);
   }
 
   private void auditRemoteConnection(String host) {
@@ -292,7 +294,7 @@ public class ClaimsHandlerManager {
    * @param groupBaseDn Base DN of the group.
    */
   private void registerRoleClaimsHandler(
-      ConnectionFactory connection,
+      ServerSet connection,
       String propertyFileLoc,
       String userBaseDn,
       String loginUserAttribute,
@@ -334,7 +336,7 @@ public class ClaimsHandlerManager {
    * @param userNameAttr Identifier that defines the user.
    */
   private void registerLdapClaimsHandler(
-      ConnectionFactory connection,
+      ServerSet connection,
       String propertyFileLoc,
       String userBaseDn,
       String userNameAttr,
